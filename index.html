@@ -1,0 +1,8 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FACT TOK</title></head>
+<body style="background:#000;color:#fff;font-family:sans-serif"><p style="padding:20px">Loading FACT TOK...</p>
+<script>
+fetch('app.html').then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(h){
+  h=h.replace('</body>','<script type="module" src="facttok-cloud.js"><\/script></body>');
+  document.open();document.write(h);document.close();
+}).catch(function(){document.body.innerHTML='<p style="padding:20px">app.html not found. Upload app.html next to this file.</p>'});
+</script></body></html>
