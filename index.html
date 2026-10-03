@@ -2,7 +2,12 @@
 <body style="background:#000;color:#fff;font-family:sans-serif"><p style="padding:20px">Loading FACT TOK...</p>
 <script>
 fetch('app.html').then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(h){
-  h=h.replace('</body>','<script type="module" src="facttok-cloud.js"><\/script></body>');
+  /* NEW: official ID patch (fact-new.html se) */
+  [["const verified=u=>u.verified||(","const verified=u=>u.verified||u.email===CONFIG.adminGmail||("],
+   ["' <span title=\"Verified\" style=\"color:#20d5ec\">✅</span>'","(u.email===CONFIG.adminGmail?' <span title=\"Official FACT TOK account\" style=\"color:#1ed760\">✅ Official</span>':' <span title=\"Verified\" style=\"color:#20d5ec\">✅</span>')"]
+  ].forEach(function(p){if(h.indexOf(p[0])>-1)h=h.replace(p[0],function(){return p[1]});else console.warn('FT patch skipped:',p[0])});
+  /* NEW: ft-extra.js ka script tag (cloud se pehle) */
+  h=h.replace('</body>','<script src="ft-extra.js?v=1"><\/script><script type="module" src="facttok-cloud.js"><\/script></body>');
   document.open();document.write(h)// ===== FT 8K FILTER - NAME: FT PARI FILTER ✨ =====
 window.ftFilterOn = false;
 window.apply8KBeautyFilter = function(video) {
