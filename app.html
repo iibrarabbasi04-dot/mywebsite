@@ -1,238 +1,404 @@
-/* FACT TOK - UI design add-on (feed, nav, inbox, profile).
-   Sirf design badalta hai. app.html ka purana code/ids/functions nahi chhedta.
-   app.html mein </body> se pehle ye line lagayen:  <script src="ft-ui.js"></script> */
-(function(){
-if(window.__ftui)return;
-const CSS=`
-header,.top{position:absolute;left:0;right:0;max-width:480px;margin:0 auto;z-index:20;background:transparent;text-shadow:0 1px 3px rgba(0,0,0,.6)}
-header{top:0;height:48px;border-bottom:0;padding:0 12px}
-header:before{content:"";position:absolute;left:0;right:0;top:0;height:100px;background:linear-gradient(rgba(0,0,0,.65),transparent);z-index:-1;pointer-events:none}
-.top{top:48px}
-.up{display:none}
-.coin{background:#00000070;border-radius:20px;padding:3px 12px 3px 3px;margin-left:auto;font-size:13px}
-.coin .ft{width:22px;height:22px;font-size:9px}
-#sBtn{background:none;color:#fff;padding:6px;border-radius:50%;display:grid;place-items:center}
-header #search{display:none;background:#000000a0;border:1px solid #ffffff30}
-header.sopen #search{display:block}
-header.sopen #ftLogo,header.sopen .coin{display:none}
-#ftLogo{font-size:15px}
-#search{background:#1c1c1c;border:0;font-size:13px;padding:9px 14px}
-.top{height:40px;gap:22px;border-bottom:0}
-.top button{font-size:16px;font-weight:600;padding:6px 2px;color:#ffffffb3;background:none}
-.top .on{color:#fff;font-weight:800;border-bottom:2px solid #fff;border-image:none}
-#feed{height:auto!important;flex:1;min-height:0}
-.reel{height:100%;margin:0;border-radius:0}
-.reel:after{content:"";position:absolute;left:0;right:0;bottom:0;height:50%;background:linear-gradient(transparent,rgba(0,0,0,.7));pointer-events:none}
-.side,.cap,.watermark{z-index:2}
-.fact{font-size:26px;padding:30px 84px 120px 24px}
-.side{right:10px;bottom:84px;gap:18px}
-.side button{display:flex;flex-direction:column;align-items:center;gap:3px;color:#fff;font-size:12px;font-weight:600;padding:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.65))}
-.side button svg{display:block;fill:currentColor;transition:transform .15s}
-.side button:active svg{transform:scale(.85)}
-.side small{font-size:12px;font-weight:600}
-.side .liked{color:#fe2c55}
-.side .saved{color:#ffc83d}
-.avatar{width:48px;height:48px;margin-bottom:14px}
-.followBtn{left:50%;margin-left:-10px;bottom:-10px;font-size:16px;font-weight:800;line-height:20px;border:2px solid #000;box-sizing:content-box;width:16px;height:16px;line-height:16px;margin-left:-10px}
-.followBtn.fd{background:#fff;color:#000}
-.cap{left:14px;right:86px;bottom:18px;line-height:1.4}
-.cap b{font-size:16px}
-.cap .m{font-size:12px}
-.watermark{right:auto;left:12px;bottom:auto;top:10px}
-nav{height:auto;min-height:56px;padding-bottom:env(safe-area-inset-bottom);border-top:1px solid #1e1e1e}
-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:#ffffff99;font-size:11px;font-weight:600;padding:6px 0;background:none;position:relative}
-nav button svg{display:block}
-nav .on{color:#fff}
-nav .plus{flex:0 0 auto;width:46px;height:30px;padding:0;margin:0 8px;border-radius:9px;background:#fff;color:#000;box-shadow:-3px 0 0 #25f4ee,3px 0 0 #fe2c55;justify-content:center}
-#inbBadge{position:absolute;top:1px;left:54%;min-width:18px;height:18px;border-radius:9px;background:#fe2c55;color:#fff;font:700 10px/18px Inter,sans-serif;text-align:center;padding:0 5px;font-style:normal}
-#inboxModal .sheet,#profileModal .sheet{height:100%;max-height:100%;border-radius:0;padding:0;background:#000}
-#inboxModal .sheet h3,#profileModal .sheet h3{position:sticky;top:0;z-index:5;margin:0;padding:12px 14px;background:#000;font-size:18px}
-#dotsBtn{background:#2a2a2a;border-radius:50%;width:36px;height:36px;padding:0}
-.bigt{font-size:26px;font-weight:800}
-.isearch{display:flex;align-items:center;gap:8px;margin:4px 14px 10px;background:#1c1c1c;border-radius:24px;padding:0 14px;color:#9a9a9a}
-.isearch input,.isearch input:focus{background:none;border:0;outline:0;margin:0;padding:11px 0}
-.stories{display:flex;gap:14px;overflow-x:auto;padding:4px 14px 12px;scrollbar-width:none}
-.story{flex:0 0 auto;width:64px;text-align:center;font-size:12px;cursor:pointer}
-.sa{position:relative;width:56px;height:56px;margin:0 auto 4px}
-.sa i{position:absolute;right:0;bottom:2px;width:14px;height:14px;border-radius:50%;background:#31d158;border:2px solid #000}
-.mrow{display:flex;gap:12px;align-items:center;padding:10px 14px}
-.mrow .ft{width:52px;height:52px;flex:0 0 52px;font-size:18px}
-.mrow .mt{min-width:0}.mrow b{display:block;font-size:16px}
-.mrow p{color:#9a9a9a;font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.isec{padding:16px 14px 6px;font-weight:800;font-size:16px}
-.frow{display:flex;gap:12px;align-items:center;padding:8px 14px}
-.frow .w{width:48px;height:48px;flex:0 0 48px}
-.frow .n{flex:1;min-width:0}.frow .n b{display:block}
-.fbtn{background:#1ed76026;color:var(--g);font-weight:700;padding:9px 18px;border-radius:8px}
-.pcover{height:130px;background:linear-gradient(135deg,#0b3d1c,#1ed760 170%)}
-.pdp{width:116px;height:116px;margin:-58px auto 0;position:relative;border-radius:50%;box-shadow:0 0 0 4px #000}
-.pdp .dp{border:3px solid #fff}
-.pname{text-align:center;font-size:26px;font-weight:800;margin-top:12px}
-.pun,.pposts,.pbio{text-align:center}
-.pposts{margin-top:4px;font-size:15px}
-.pbio{padding:6px 24px;color:#d0d0d0}
-.pact{display:flex;gap:10px;padding:14px}
-.pact button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;font-weight:700;font-size:15px;border-radius:8px}
-.pri2{background:var(--g);color:#000}.grey{background:#2a2a2a}
-.pstats{display:flex;justify-content:space-around;padding:4px 14px 14px;color:#9a9a9a;text-align:center}
-.pstats b{display:block;color:#fff;font-size:18px}
-.ptabs{display:flex;border-top:1px solid var(--l);border-bottom:1px solid var(--l)}
-.ptabs button{flex:1;background:none;border-radius:0;color:#9a9a9a;font-weight:700;padding:13px 0;border-bottom:3px solid transparent}
-.ptabs .on{color:var(--g);border-bottom-color:var(--g)}
-#profBody .grid{padding:2px}
-#profGrid div{position:relative;border-radius:0;padding:8px;font-size:12px;font-weight:600}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pop{50%{transform:scale(1.3)}}
-.side .liked svg{animation:pop .3s}
-.disc{position:absolute;right:12px;bottom:18px;width:44px;height:44px;border-radius:50%;background:#222;padding:7px;z-index:2;animation:spin 6s linear infinite}
-.disc .dp{border:0}
-.cap .cl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.cap .cl.x{-webkit-line-clamp:unset}
-.sheet{background:#121212;border-radius:16px 16px 0 0}
-.sheet h3{font-size:17px;font-weight:800}
-.sheet h3 button{background:#2a2a2a;border-radius:50%;min-width:32px;height:32px;padding:0 8px;font-size:14px}
-#commentModal .sheet{height:72%;display:flex;flex-direction:column}
-#commentModal h3{justify-content:center;position:relative}
-#commentModal h3 button{position:absolute;right:0}
-#cmList{flex:1;overflow:auto}
-.cm{display:flex;gap:10px;padding:10px 0;border-bottom:0}
-.cm .cav{width:38px;height:38px;flex:0 0 38px}
-.cm .cb{min-width:0}.cm .cb span{color:#9a9a9a;font-size:12px;font-weight:600}.cm .cb div{font-size:14px;margin-top:2px;word-break:break-word}
-#commentModal .row{border-top:1px solid #2a2a2a;padding-top:8px;align-items:center}
-#cmInput{background:#2a2a2a;border:0;border-radius:22px;padding:11px 16px;margin:0;flex:4}
-#commentModal .pri{width:auto;margin:0;border-radius:22px;padding:11px 18px}
-#shareModal .list{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 4px;padding:10px 0 16px}
-#shareModal .list button{display:flex;flex-direction:column;align-items:center;gap:7px;border:0;padding:0;font-size:12px;text-align:center}
-.sb{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:17px}
-.sb svg{fill:#fff}
-#profileSettingsModal .list button{display:flex;align-items:center;gap:14px;padding:15px 4px;font-size:15px;border-bottom:1px solid #222}
-#profileSettingsModal .list button svg{color:#cfcfcf;flex:0 0 22px}
-#privateToggle,#dlToggle{-webkit-appearance:none;appearance:none;width:46px!important;height:26px;border-radius:13px;background:#444;position:relative;padding:0;border:0;margin:0 0 0 auto!important;float:none!important;transition:.2s;flex:0 0 46px;outline:0}
-#privateToggle:after,#dlToggle:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
-#privateToggle:checked,#dlToggle:checked{background:var(--g)}
-#privateToggle:checked:after,#dlToggle:checked:after{left:23px}
-#balanceModal input,#balanceModal select{background:#1c1c1c;border:0;border-radius:12px;padding:13px}
-#profGrid em{position:absolute;left:8px;bottom:6px;font-style:normal;display:flex;gap:4px;align-items:center}
-`;
-const P={heart:'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
-comment:'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z',
-bookmark:'M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z',
-share:'M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z',
-home:'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z',
-people:'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
-mail:'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z',
-user:'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
-plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
-search:'M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
-wallet:'M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z',
-lock:'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z',
-download:'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
-bell:'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z',
-logout:'M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z',
-flag:'M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z',
-repeat:'M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z',
-close:'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
-edit:'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'};
-const ic=(k,s)=>`<svg viewBox="0 0 24 24" width="${s||24}" height="${s||24}" fill="currentColor"><path d="${P[k]}"/></svg>`;
-let pv=null;
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FACT TOK</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--g:#1ed760;--bg:#000;--c:#121212;--l:#2a2a2a;--t:#fff;--m:#9a9a9a}
+*{box-sizing:border-box;margin:0}[hidden]{display:none!important}
+body{background:var(--bg);color:var(--t);font:14px Inter,system-ui,sans-serif;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{width:100%;background:#1c1c1c;border:1px solid var(--l);border-radius:10px;padding:11px;margin:5px 0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--g)}
+button{cursor:pointer;border:0;border-radius:10px;padding:11px 14px;background:var(--l)}
+.pri{background:var(--g);color:#000;font-weight:800;width:100%;margin-top:6px}
+.ft{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--g);color:#000;font-weight:800;font-size:12px}
+#authBox{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 0,#0b3d1c,#000 60%);padding:14px;overflow:auto}
+.glass{width:100%;max-width:400px;background:#ffffff0d;backdrop-filter:blur(14px);border:1px solid #ffffff1f;border-radius:22px;padding:22px;text-align:center}
+.glass .ft{width:56px;height:56px;font-size:22px;margin-bottom:12px}
+.tabs,.seg{display:flex;gap:6px;background:#1c1c1c;border-radius:30px;padding:4px;margin:10px 0}
+.tabs button,.seg button{flex:1;background:none;border-radius:30px;color:var(--m);font-weight:600}
+.tabs .on,.seg .on{background:var(--g);color:#000}
+#otpArea{margin-top:12px;border-top:1px solid var(--l);padding-top:10px}#otpMsg{color:var(--g);margin-bottom:6px}
+#appBox{position:fixed;inset:0;display:flex;flex-direction:column}
+header{height:56px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--l);background:#000}
+#ftLogo{display:flex;align-items:center;gap:7px;font-weight:800;cursor:pointer;user-select:none;white-space:nowrap}
+#search{flex:1;border-radius:30px;margin:0;padding:8px 14px}
+.coin{display:flex;align-items:center;gap:5px;font-weight:700}
+.up{background:var(--g);color:#000;font-weight:800;padding:8px 12px}
+.top{height:40px;display:flex;justify-content:center;gap:22px;align-items:center}
+.top button{background:none;color:var(--m);font-weight:600;border-radius:0;padding:8px 2px}.top .on{color:#fff;border-bottom:2px solid var(--g)}
+#feed{height:calc(100vh - 152px);overflow-y:scroll;scroll-snap-type:y mandatory;max-width:480px;width:100%;margin:0 auto;scrollbar-width:none}
+.reel{height:calc(100vh - 158px);scroll-snap-align:start;position:relative;background:#111;margin-bottom:6px;overflow:hidden;border-radius:12px}
+.reel video{width:100%;height:100%;object-fit:cover}.fact{height:100%;display:grid;place-items:center;padding:30px 70px 110px 24px;font-size:22px;font-weight:800;line-height:1.35}
+.side{position:absolute;right:8px;bottom:90px;display:flex;flex-direction:column;gap:16px;align-items:center}
+.side button{background:none;padding:0;font-size:28px;text-align:center}.side small{display:block;font-size:12px;font-weight:600}
+.avatar{position:relative;width:48px;height:48px;margin-bottom:12px}.avatar img,.dp{width:100%;height:100%;border-radius:50%;object-fit:cover;background:var(--g);display:grid;place-items:center;color:#000;font-weight:800;border:2px solid #fff}
+.followBtn{position:absolute;left:14px;bottom:-9px;width:20px;height:20px;border-radius:50%;background:#fe2c55;color:#fff;font-size:14px;line-height:20px;text-align:center;cursor:pointer}
+.cap{position:absolute;left:12px;right:80px;bottom:14px;text-shadow:0 1px 4px #000}.cap b{font-size:15px}.tag{color:var(--g);font-weight:600}
+.watermark{position:absolute;right:10px;bottom:8px;font-size:11px;display:flex;align-items:center;gap:5px;opacity:.85}.watermark .ft{width:18px;height:18px;font-size:8px}
+nav{height:56px;display:flex;justify-content:space-around;align-items:center;border-top:1px solid var(--l);background:#000;max-width:480px;width:100%;margin:0 auto}
+nav button{background:none;color:var(--m);font-size:12px;padding:4px 8px}nav .on{color:#fff}
+nav .plus{background:linear-gradient(90deg,#25f4ee 30%,#fe2c55 70%);color:#000;font-size:22px;font-weight:800;padding:2px 14px;border-radius:10px}
+.modal{position:fixed;inset:0;background:#000b;display:none;align-items:flex-end;justify-content:center;z-index:50}.modal.on{display:flex}
+.sheet{background:var(--c);width:100%;max-width:480px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px}
+.sheet h3{margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.list button{display:block;width:100%;text-align:left;background:none;border-bottom:1px solid var(--l);border-radius:0;padding:14px 4px}
+.row{display:flex;gap:8px}.row>*{flex:1}.stat{text-align:center;margin:12px 0}.stat b{display:block;font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}.grid div{aspect-ratio:3/4;background:#1c1c1c;font-size:11px;padding:6px;overflow:hidden;border-radius:6px}
+.cm{padding:8px 0;border-bottom:1px solid var(--l)}.cm b{color:var(--g)}.m{color:var(--m)}
+#toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:var(--g);color:#000;font-weight:700;padding:10px 18px;border-radius:30px;z-index:99;display:none}
+.adm{border:1px solid var(--l);border-radius:10px;padding:10px;margin:8px 0}
+.ft{box-shadow:0 0 12px #1ed76088}#appName{text-shadow:0 0 10px #1ed76077;letter-spacing:.5px}.top .on{border-image:linear-gradient(90deg,#1ed760,#25f4ee) 1}
+.scr{position:fixed;inset:0;background:#000;z-index:70;display:none;flex-direction:column}.scr.on{display:flex}
+.scr video{width:100%;height:100%;object-fit:cover}#draftModal{z-index:90}
+.bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;z-index:3}
+.bar button{background:#0008;border-radius:50%;width:40px;height:40px;padding:0;font-size:18px}
+.stage{position:relative;flex:1;min-height:0;overflow:hidden;background:#111}
+.fstrip{display:flex;gap:10px;overflow-x:auto;padding:8px 12px;scrollbar-width:none}
+.fchip{flex:0 0 auto;text-align:center;font-size:10px;cursor:pointer;width:50px}.fchip i{display:block;width:44px;height:44px;margin:0 auto 3px;border-radius:50%;border:2px solid transparent;background:linear-gradient(135deg,#1ed760,#ff7a00,#25f4ee)}.fchip.on i{border-color:#fff}
+.cambtm{display:flex;justify-content:space-around;align-items:center;padding:6px 0 22px;background:#000}.cambtm>button:not(.rec){width:50px;height:50px;border-radius:12px;padding:0;font-size:20px}
+.rec{width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:none;padding:0;display:grid;place-items:center}.rec b{width:56px;height:56px;border-radius:50%;background:#fe2c55;transition:.2s}.rec.on b{width:28px;height:28px;border-radius:8px}
+#edOv{position:absolute;inset:0;pointer-events:none}.ov{position:absolute;transform:translate(-50%,-50%);font-weight:800;text-shadow:0 1px 4px #000;white-space:nowrap;pointer-events:auto;touch-action:none}.reel .ov{pointer-events:none}
+.vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 90px 30px #000}
+.e-shake{animation:shk .25s infinite}.e-pulse{animation:pls .8s infinite}.e-mirror{transform:scaleX(-1)}.e-flip{transform:scaleY(-1)}
+@keyframes shk{0%,100%{transform:translate(0)}25%{transform:translate(-3px,2px)}75%{transform:translate(3px,-2px)}}@keyframes pls{50%{transform:scale(1.08)}}
+.tools{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:6px;background:#000}.tools button{flex:0 0 auto;background:#1c1c1c;font-size:12px;padding:8px 12px}
+.tools .on,.panel .on{background:var(--g);color:#000}
+.panel{padding:6px 12px;min-height:100px;background:#000}.panel label{display:flex;align-items:center;gap:8px;font-size:12px}.panel label input{padding:0;margin:4px 0}.panel button{margin:2px;font-size:12px;padding:8px 12px}
+.gal{position:relative;width:50px;height:50px;border-radius:12px;background:var(--l);display:grid;place-items:center;font-size:20px}.gal input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;margin:0;padding:0;border:0;cursor:pointer}.ghost{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}.modes{display:flex;justify-content:center;gap:26px;background:#000;padding-bottom:14px}.modes button{background:none;color:var(--m);font-weight:800;padding:4px;border-radius:0}.modes .on{color:#fff;border-bottom:2px solid var(--g)}.rec b{display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800}#liveChat div{margin:3px 0}</style></head><body>
 
-function setup(){
- if(window.__ftui)return;window.__ftui=1;
- const st=document.createElement('style');st.id='ftui-css';st.textContent=CSS;document.head.appendChild(st);
+<div id="authBox"><div class="glass"><div class="ft">FT</div>
+<div class="tabs"><button id="tLi" class="on" onclick="showMain('li')">LOGIN</button><button id="tSu" onclick="showMain('su')">SIGN UP</button></div>
+<div id="pLi"><div class="seg"><button id="liBp" class="on" onclick="showLi('p')">Phone</button><button id="liBg" onclick="showLi('g')">Gmail</button></div>
+<div id="liP"><select id="liCC"></select><input id="liPhone" placeholder="Phone" inputmode="tel"><input id="liPassP" type="password" placeholder="Password"><button class="pri" onclick="loginPhone()">Log in</button></div>
+<div id="liG" hidden><input id="liEmail" type="email" placeholder="Gmail"><input id="liPassG" type="password" placeholder="Password"><button class="pri" onclick="loginGmail()">Log in</button></div></div>
+<div id="pSu" hidden><div class="seg"><button id="suBp" class="on" onclick="showSu('p')">Phone</button><button id="suBg" onclick="showSu('g')">Gmail</button></div>
+<div id="suP"><input id="suNameP" placeholder="Name"><select id="suCC"></select><input id="suPhone" placeholder="Phone" inputmode="tel"><input id="suPassP" type="password" placeholder="Password (6+ characters)"><input id="suCPassP" type="password" placeholder="Confirm password"><button class="pri" onclick="signupPhone()">Create account</button></div>
+<div id="suG" hidden><input id="suNameG" placeholder="Name"><input id="suEmailG" type="email" placeholder="Gmail"><input id="suPassG" type="password" placeholder="Password (6+ characters)"><input id="suCPassG" type="password" placeholder="Confirm password"><button class="pri" onclick="signupGmail()">Create account</button></div></div>
+<div id="otpArea" style="display:none"><p id="otpMsg"></p><input id="otpInput" placeholder="6-digit code" inputmode="numeric"><div class="row"><button class="pri" onclick="verifyOtp()">Verify</button><button onclick="resendOtp()" style="margin-top:6px">Resend</button></div></div>
+</div></div>
 
- /* bottom nav */
- const n=document.querySelector('#appBox nav');
- n.innerHTML=`<button id="nHome" class="on" onclick="setTab('foryou')">${ic('home')}<span>Home</span></button><button onclick="setTab('following')">${ic('people')}<span>Friends</span></button><button class="plus" onclick="openUpload()">${ic('plus',22)}</button><button onclick="openInbox()">${ic('mail')}<span>Inbox</span><i id="inbBadge" hidden></i></button><button onclick="showUser()">${ic('user')}<span>Profile</span></button>`;
- const badge=()=>{const b=$('inbBadge');if(!b||!currentUser)return;const c=(currentUser.inbox||[]).length;b.hidden=!c;b.textContent=c>99?'99+':c};
+<div id="appBox" hidden>
+<header><div id="ftLogo" onclick="logoTap()"><span class="ft">FT</span><span id="appName"></span></div><input id="search" placeholder="Search facts, users, #tags" oninput="renderFeed()"><div class="coin"><span class="ft">FT</span><span id="coinCount">0</span></div><button class="up" onclick="openUpload()">+</button></header>
+<div class="top" id="topTabs"><button class="on" data-t="foryou" onclick="setTab('foryou')">For You</button><button data-t="following" onclick="setTab('following')">Following</button><button data-t="community" onclick="setTab('community')">Community</button><button data-t="stem" onclick="setTab('stem')">STEM</button></div>
+<div id="feed"></div>
+<nav><button id="nHome" class="on" onclick="setTab('foryou')">🏠<br>Home</button><button onclick="setTab('following')">👥<br>Friends</button><button class="plus" onclick="openUpload()">+</button><button onclick="openInbox()">✉️<br>Inbox 99+</button><button onclick="showUser()">👤<br>Profile</button></nav></div>
 
- /* feed card */
- reelHTML=function(v){
-  const o=getU(v.owner)||{name:'User',username:'user',followers:0,followingList:[]};
-  const f=currentUser.followingList.includes(v.owner),me=v.owner===currentUser.email,liked=v.likedBy.includes(currentUser.email),sd=currentUser.saved.includes(v.id);
-  return `<div class="reel" ondblclick="likeVideo(${v.id})" style="background:${v.bg||'#111'}">
+<div class="modal" id="commentModal"><div class="sheet"><h3><span id="cmTitle">Comments</span><button onclick="closeM('commentModal')">✕</button></h3><div id="cmList"></div><div class="row"><input id="cmInput" placeholder="Add comment..." style="flex:3"><button class="pri" onclick="postComment()" style="margin:5px 0">Post</button></div></div></div>
+
+<div class="modal" id="shareModal"><div class="sheet"><h3>Share to<button onclick="closeM('shareModal')">✕</button></h3><div class="list">
+<button onclick="openReportModal()">🚩 Report</button><button onclick="repostVideo()">🔁 Repost</button><button onclick="downloadVideo()">⬇️ Download</button><button onclick="shareTo('wa')">🟢 WhatsApp</button><button onclick="shareTo('tw')">🐦 Twitter</button><button onclick="shareTo('fb')">📘 Facebook</button><button onclick="shareTo('ig')">📸 Instagram (copy link)</button></div></div></div>
+
+<div class="modal" id="reportModal"><div class="sheet"><h3>Report video<button onclick="closeM('reportModal')">✕</button></h3><select id="rpReason"><option>Nudity</option><option>Violence</option><option>Spam</option><option>Harassment</option><option>Fake</option></select><textarea id="rpDesc" rows="3" placeholder="Tell us what happened"></textarea><button class="pri" onclick="submitReport()">Submit report</button></div></div>
+
+<div class="modal" id="profileModal"><div class="sheet"><h3><span>Profile</span><span><button id="dotsBtn" onclick="openProfileSettings()">•••</button> <button onclick="closeM('profileModal')">✕</button></span></h3><div id="profBody"></div></div></div>
+
+<div class="modal" id="editProfileModal"><div class="sheet"><h3>Edit profile<button onclick="closeM('editProfileModal')">✕</button></h3><input id="epName" placeholder="Name"><input id="epBio" placeholder="Bio"><div style="text-align:center"><div style="position:relative;width:96px;height:96px;margin:6px auto"><div id="epPrev" style="width:96px;height:96px"></div><input id="epFile" type="file" accept="image/*" onchange="pickDp(this)" style="position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0;border:0;border-radius:50%"></div><small class="m">Tap the picture to choose a new one</small></div><button class="pri" onclick="saveProfile()">Save</button></div></div>
+<div class="modal" id="editBioModal"><div class="sheet"><h3>Edit description<button onclick="closeM('editBioModal')">✕</button></h3><textarea id="ebText" rows="4" maxlength="160" placeholder="Write your bio"></textarea><button class="pri" onclick="saveBio()">Save</button></div></div>
+
+<div class="modal" id="profileSettingsModal"><div class="sheet"><h3>Settings<button onclick="closeM('profileSettingsModal')">✕</button></h3><div class="list">
+<button onclick="openBalance()">💰 Balance</button>
+<button onclick="document.getElementById('privateToggle').click()">🔒 Private account <input type="checkbox" id="privateToggle" style="width:auto;float:right" onclick="event.stopPropagation();togglePrivate(this.checked)"></button>
+<button onclick="document.getElementById('dlToggle').click()">⬇️ Allow downloads <input type="checkbox" id="dlToggle" style="width:auto;float:right" onclick="event.stopPropagation();toggleDl(this.checked)"></button>
+<button onclick="closeM('profileSettingsModal');openInbox()">🔔 Notifications</button><button onclick="logout()">🚪 Log out</button></div></div></div>
+
+<div class="modal" id="balanceModal"><div class="sheet"><h3>Balance: <span id="balCoins"></span> FT<button onclick="closeM('balanceModal')">✕</button></h3>
+<p class="m" id="payInfo"></p><select id="coinAcc"><option>Easypaisa</option><option>JazzCash</option></select><input id="coinOrderName" placeholder="Account holder name"><input id="coinOrderCoins" type="number" min="1" placeholder="Coins to order" oninput="calcPrice()"><p>Price: Rs <b id="coinPrice">0</b></p><button class="pri" id="coinOrderSubmit" onclick="submitCoinOrder()">Submit order</button></div></div>
+
+<div class="modal" id="uploadModal"><div class="sheet"><h3>New video<button onclick="closeM('uploadModal')">✕</button></h3><textarea id="upCap" rows="2" placeholder="Caption"></textarea><input id="upTags" placeholder="#facts #stem #community"><input id="upLoc" placeholder="📍 Location"><input id="upUrl" placeholder="Video URL (optional)"><input id="upFile" type="file" accept="video/*"><label><input type="checkbox" id="upDl" checked style="width:auto"> Allow downloads</label><button class="pri" onclick="postVideo()">Post</button></div></div>
+
+<div class="modal" id="inboxModal"><div class="sheet"><h3>Inbox<button onclick="closeM('inboxModal')">✕</button></h3><div id="inboxList"></div></div></div>
+<div class="modal" id="adminModal"><div class="sheet"><h3>Admin<button onclick="closeM('adminModal')">✕</button></h3><div class="row"><button onclick="renderAdmin('orders')">Orders</button><button onclick="renderAdmin('users')">Users</button><button onclick="renderAdmin('reports')">Reports</button></div><div id="admBody"></div></div></div>
+<div class="scr" id="camScreen"><div class="bar"><button onclick="closeCam()">✕</button><span class="ft" style="width:38px;height:38px">FT</span><button onclick="flipCam()">🔄</button></div>
+<div class="stage"><video id="camV" autoplay playsinline muted></video><div id="recT" style="position:absolute;top:64px;left:50%;transform:translateX(-50%);font-weight:800;text-shadow:0 1px 4px #000"></div></div>
+<div class="fstrip" id="camStrip" style="background:#000"></div>
+<div class="cambtm"><div class="gal">🖼️<input id="vidFile" type="file" accept="video/*" onchange="pickVideo(this)" title="Gallery"></div><input id="capFile" type="file" accept="video/*" capture="user" class="ghost" onchange="pickVideo(this)"><button class="rec" id="recBtn" onclick="toggleRec()"><b></b></button><button onclick="openDrafts()" title="Drafts">📝</button></div>
+<div class="modes"><button id="mdPost" class="on" onclick="setMode('post')">POST</button><button id="mdLive" onclick="setMode('live')">LIVE</button></div></div>
+
+<div class="scr" id="edScreen"><div class="bar"><button onclick="closeEd()">←</button><b>Edit</b><span style="width:40px"></span></div>
+<div class="stage" id="edStage"><video id="edV" loop playsinline onclick="this.paused?this.play():this.pause()"></video><div id="edOv"></div></div>
+<div class="tools" id="edTools"><button data-t="f" onclick="edTab('f')">Filters</button><button data-t="a" onclick="edTab('a')">Adjust</button><button data-t="e" onclick="edTab('e')">Effects</button><button data-t="s" onclick="edTab('s')">Speed</button><button data-t="r" onclick="edTab('r')">Trim</button><button data-t="t" onclick="edTab('t')">Text</button><button data-t="k" onclick="edTab('k')">Stickers</button><button data-t="m" onclick="edTab('m')">Sound</button></div>
+<div class="panel" id="edPanel"></div>
+<div class="row" style="padding:8px 12px 18px;background:#000"><button onclick="saveDraft()">📝 Draft</button><button class="pri" style="margin:0" onclick="openPost()">Post</button></div></div>
+
+<div class="scr" id="postScreen" style="overflow:auto"><div class="bar" style="position:static"><button onclick="closeM('postScreen')">←</button><b>Post</b><span style="width:40px"></span></div>
+<div style="padding:0 14px 24px"><div class="row"><textarea id="poCap" rows="5" maxlength="300" placeholder="Describe your video..." style="flex:3"></textarea><video id="poV" muted playsinline style="border-radius:10px;height:130px;margin:5px 0"></video></div>
+<div class="row"><button onclick="showTags()"># Hashtags</button><button onclick="showMen()">@ Mention</button></div><div id="poSug" class="fstrip" style="flex-wrap:wrap"></div>
+<input id="poLoc" placeholder="📍 Add location"><div class="fstrip"><button onclick="setLoc('Lahore')">📍 Lahore</button><button onclick="setLoc('Karachi')">📍 Karachi</button><button onclick="setLoc('Islamabad')">📍 Islamabad</button><button onclick="setLoc('Dubai')">📍 Dubai</button></div>
+<label class="m">Who can watch this video</label><select id="poVis"><option value="all">Everyone</option><option value="me">Only me</option></select>
+<label style="display:block;margin:8px 0"><input type="checkbox" id="poCm" checked style="width:auto"> Allow comments</label><label style="display:block;margin:8px 0"><input type="checkbox" id="poDl" checked style="width:auto"> Allow downloads</label>
+<div class="row" style="margin-top:12px"><button onclick="saveDraft()">📝 Drafts</button><button class="pri" style="margin:0" onclick="postFinal()">Post</button></div></div></div>
+
+<div class="scr" id="liveScreen"><div class="stage"><video id="liveV" autoplay playsinline muted></video></div>
+<div class="bar"><span style="background:#fe2c55;border-radius:6px;padding:6px 10px;font-weight:800">LIVE <span id="liveT">0:00</span></span><span style="background:#0008;padding:6px 10px;border-radius:20px">👁 <span id="liveViews">0</span></span><button onclick="endLive()">✕</button></div>
+<div id="liveChat" style="position:absolute;left:12px;right:12px;bottom:74px;max-height:35%;overflow:auto;text-shadow:0 1px 3px #000"></div>
+<div class="row" style="position:absolute;left:12px;right:12px;bottom:14px"><input id="liveIn" placeholder="Say something..." style="flex:4"><button class="pri" style="margin:5px 0" onclick="liveSend()">Send</button></div></div>
+<div class="modal" id="draftModal"><div class="sheet"><h3>Drafts<button onclick="closeM('draftModal')">✕</button></h3><div id="draftList"></div></div></div>
+<div id="toast"></div>
+
+
+<script>
+const FACTTOK_CONFIG={appName:"FACT TOK",logoText:"FT",adminGmail:"iibrarabbasi04@gmail.com",hideAdminGmailFromUsers:true,
+countryCodes:["+92 Pakistan","+91 India","+971 UAE","+966 Saudi Arabia","+44 UK","+1 USA","+86 China","+81 Japan","+90 Turkey","+49 Germany","+33 France","+61 Australia","+880 Bangladesh","+94 Sri Lanka","+977 Nepal","+98 Iran","+60 Malaysia","+62 Indonesia","+27 South Africa","+55 Brazil"],
+blueTickRule:{followers:1000000,likes:1000000},coinSymbol:"FT",
+coinPackages:[{coins:100,price:100},{coins:500,price:450},{coins:1000,price:850},{coins:5000,price:4000},{coins:10000,price:7500}],
+easypaisaInfo:"Easypaisa: 03279128541 - Name: Ibrar Abbasi",jazzCashInfo:"JazzCash: 03279128541 - Name: Ibrar Abbasi"};
+const CONFIG=FACTTOK_CONFIG,$=id=>document.getElementById(id);
+const ld=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('Storage full - use a shorter video or a URL');return false}};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let users=ld('facttok_users',[]),currentUser=null,videos=[],otpCode='',tempUser=null,selId=null,tab='foryou',taps=[],viewing=null,admTab='orders';
+const getU=e=>users.find(u=>u.email===e);
+const vid=id=>videos.find(v=>v.id==id);
+function saveAll(){sv('facttok_users',users);sv('facttok_videos',videos);if(currentUser)sv('facttok_current_user',currentUser)}
+function toast(m){const t=$('toast');t.innerText=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2200)}
+window.openM=id=>$(id).classList.add('on');window.closeM=id=>$(id).classList.remove('on');
+const mail=(s,b)=>{const a=document.createElement('a');a.href='mailto:'+CONFIG.adminGmail+'?subject='+encodeURIComponent(s)+'&body='+encodeURIComponent(b);document.body.appendChild(a);a.click();a.remove()};
+const totalLikes=u=>videos.filter(v=>v.owner===u.email).reduce((a,v)=>a+v.likes,0);
+const verified=u=>u.verified||(u.followers>=CONFIG.blueTickRule.followers&&totalLikes(u)>=CONFIG.blueTickRule.likes);
+const tick=u=>verified(u)?' <span title="Verified" style="color:#20d5ec">✅</span>':'';
+const maskPhone=u=>u.phone?u.cc+' '+u.phone.slice(0,3)+'••••'+u.phone.slice(-2):'';
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':n;
+const dpHTML=(u,s)=>u.dp?`<img class="dp" src="${esc(u.dp)}" alt="">`:`<div class="dp" style="font-size:${s/3}px">FT</div>`;
+
+/* ---------- AUTH ---------- */
+window.showMain=t=>{$('pLi').hidden=t!=='li';$('pSu').hidden=t!=='su';$('tLi').classList.toggle('on',t==='li');$('tSu').classList.toggle('on',t==='su');$('otpArea').style.display='none'};
+window.showLi=m=>{$('liP').hidden=m!=='p';$('liG').hidden=m!=='g';$('liBp').classList.toggle('on',m==='p');$('liBg').classList.toggle('on',m==='g')};
+window.showSu=m=>{$('suP').hidden=m!=='p';$('suG').hidden=m!=='g';$('suBp').classList.toggle('on',m==='p');$('suBg').classList.toggle('on',m==='g')};
+function normU(u){const A=['followingList','saved','reposts','inbox'];A.forEach(k=>{if(!Array.isArray(u[k]))u[k]=[]});['followers','coins'].forEach(k=>{u[k]=+u[k]||0});['name','username','bio','dp','phone','cc'].forEach(k=>{if(typeof u[k]!=='string')u[k]=u[k]==null?'':String(u[k])});if(u.allowDownload===undefined)u.allowDownload=true;u.private=!!u.private;u.banned=!!u.banned;if(!u.id)u.id=Date.now()+Math.floor(Math.random()*999);if(!u.username)u.username=(u.name||'user').toLowerCase().replace(/[^a-z0-9]/g,'')+Math.floor(100+Math.random()*900);return u}
+function normV(v){if(!Array.isArray(v.likedBy))v.likedBy=[];if(!Array.isArray(v.comments))v.comments=[];v.likes=+v.likes||0;['caption','tags','loc','src'].forEach(k=>{if(typeof v[k]!=='string')v[k]=v[k]==null?'':String(v[k])});return v}
+function startOtp(u,msg){otpCode=Math.floor(100000+Math.random()*900000).toString();tempUser=u;$('otpMsg').innerText=msg+' - Code: '+otpCode;$('otpArea').style.display='block';$('otpInput').value=otpCode;toast('OTP ready - tap Verify');try{$('otpArea').scrollIntoView({block:'center'})}catch(e){}alert('FACT TOK OTP is '+otpCode+' ('+msg+')')}
+function mk(name,email,phone,cc,pass){return{id:Date.now()+Math.floor(Math.random()*999),name,username:name.toLowerCase().replace(/[^a-z0-9]/g,'')+Math.floor(100+Math.random()*900),email,phone,cc,pass,bio:'',dp:'',followers:0,followingList:[],saved:[],reposts:[],inbox:[],coins:0,private:false,allowDownload:true,banned:false,isNew:true}}
+function signup(name,email,phone,cc,p1,p2,msg){
+ if(!name.trim())return alert('Enter your name');if(p1.length<6)return alert('Password must be 6+ characters');if(p1!==p2)return alert('Passwords do not match');
+ if(users.some(u=>(email&&u.email===email)||(phone&&u.phone===phone&&u.cc===cc)))return alert('Account already exists. Please log in.');
+ startOtp(mk(name.trim(),email||(cc+phone+'@phone.facttok'),phone,cc,p1),msg)}
+window.signupPhone=()=>{const ph=$('suPhone').value.replace(/\D/g,'');if(ph.length<7)return alert('Enter a valid phone number');signup($('suNameP').value,'',ph,$('suCC').value,$('suPassP').value,$('suCPassP').value,'SMS to '+$('suCC').value+' '+ph)};
+window.signupGmail=()=>{const e=$('suEmailG').value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(e))return alert('Enter a valid Gmail');signup($('suNameG').value,e,'','',$('suPassG').value,$('suCPassG').value,'Gmail to '+e)};
+function login(u,msg){if(!u)return alert('Wrong details');if(u.banned)return alert('This account is banned');u.isNew=false;startOtp(u,msg)}
+window.loginPhone=()=>{const cc=$('liCC').value,ph=$('liPhone').value.replace(/\D/g,'');login(users.find(u=>u.phone===ph&&u.cc===cc&&u.pass===$('liPassP').value),'SMS via SIM to '+cc+' '+ph)};
+window.loginGmail=()=>{const e=$('liEmail').value.trim().toLowerCase();login(users.find(u=>u.email===e&&u.pass===$('liPassG').value),'Gmail to '+e)};
+window.resendOtp=()=>{if(tempUser)startOtp(tempUser,'Resent')};
+window.verifyOtp=()=>{if($('otpInput').value!==otpCode)return alert('Wrong OTP');
+ const isNew=tempUser.isNew;delete tempUser.isNew;normU(tempUser);users=users.filter(u=>u.id!==tempUser.id&&u.email!==tempUser.email);users.push(tempUser);currentUser=tempUser;saveAll();
+ try{enterApp()}catch(e){console.error(e);alert('Account created, but the feed failed to load: '+e.message)}
+ if(isNew){const b='Name: '+currentUser.name+'\nUsername: @'+currentUser.username+'\nEmail: '+currentUser.email+'\nPhone: '+currentUser.cc+' '+currentUser.phone;console.log('NEW USER REGISTERED',b);setTimeout(()=>{try{mail('NEW USER REGISTERED',b)}catch(e){}},500)}};
+window.logout=()=>{localStorage.removeItem('facttok_current_user');location.reload()};
+function enterApp(){$('authBox').hidden=true;$('appBox').hidden=false;document.querySelectorAll('.modal').forEach(m=>m.classList.remove('on'));updCoins();renderFeed()}
+const updCoins=()=>$('coinCount').innerText=fmt(currentUser.coins||0);
+
+/* ---------- FEED ---------- */
+window.setTab=t=>{tab=t;document.querySelectorAll('#topTabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));renderFeed();$('feed').scrollTop=0};
+window.renderFeed=function(){
+ const q=$('search').value.toLowerCase().trim();
+ let list=videos.filter(v=>{const o=getU(v.owner)||{};if(v.vis==='me'&&v.owner!==currentUser.email)return false;
+  if(tab==='following'&&!currentUser.followingList.includes(v.owner))return false;
+  if(tab==='community'&&!/#community/i.test(v.tags))return false;
+  if(tab==='stem'&&!/#stem/i.test(v.tags))return false;
+  if(o.private&&o.email!==currentUser.email&&!currentUser.followingList.includes(o.email))return false;
+  return !q||(v.caption+v.tags+(o.name||'')+(o.username||'')).toLowerCase().includes(q)});
+ $('feed').innerHTML=list.length?list.map(reelHTML).join(''):'<p class="m" style="padding:40px;text-align:center">Nothing here yet. Follow creators or post your first video.</p>';
+ observe()};
+function reelHTML(v){const o=getU(v.owner)||{name:'User',username:'user',followers:0,followingList:[]};
+ const f=currentUser.followingList.includes(v.owner),me=v.owner===currentUser.email,liked=v.likedBy.includes(currentUser.email),sv_=currentUser.saved.includes(v.id);
+ return `<div class="reel" ondblclick="likeVideo(${v.id})" style="background:${v.bg||'#111'}">
  ${(v.src||v.blobId)?`<video class="${effCls(v.fx)}" ${v.src?`src="${esc(v.src)}"`:''} data-b="${v.blobId||''}" data-i="${v.id}" loop playsinline onclick="this.paused?this.play():this.pause()" style="filter:${fxCSS(v.fx)}"></video>`:`<div class="fact">${esc(v.caption)}</div>`}${ovHTML(v.fx)}
- <div class="side"><div class="avatar" onclick="showUser('${esc(v.owner)}')">${dpHTML(o,48)}${me?'':`<div class="followBtn ${f?'fd':''}" onclick="event.stopPropagation();followUser('${esc(v.owner)}')">${f?'✓':'+'}</div>`}</div>
- <button id="likeBtn${v.id}" class="${liked?'liked':''}" onclick="likeVideo(${v.id})">${ic('heart',34)}<small>${fmt(v.likes)}</small></button>
- <button onclick="openComments(${v.id})">${ic('comment',32)}<small>${v.comments.length}</small></button>
- <button class="${sd?'saved':''}" onclick="saveVideo(${v.id})">${ic('bookmark',32)}<small>Save</small></button>
- <button onclick="openShare(${v.id})">${ic('share',32)}<small>Share</small></button></div>
- <div class="disc" onclick="showUser('${esc(v.owner)}')">${dpHTML(o,30)}</div>
- <div class="cap"><b>@${esc(o.username)}</b>${tick(o)} <span class="m">${esc(maskPhone(o))}</span><div class="cl" onclick="this.classList.toggle('x')">${esc(v.caption)}</div><div class="tag">${esc(v.tags)}</div>${v.loc?`<div>📍 ${esc(v.loc)}</div>`:''}</div>
- <div class="watermark"><div class="ft-coin ft">FT</div> FACT TOK @facttok.official</div></div>`};
+ <div class="side"><div class="avatar" onclick="showUser('${esc(v.owner)}')">${dpHTML(o,48)}${me?'':`<div class="followBtn" onclick="event.stopPropagation();followUser('${esc(v.owner)}')">${f?'✓':'+'}</div>`}</div>
+ <button id="likeBtn${v.id}" onclick="likeVideo(${v.id})">${liked?'❤️':'🤍'}<small>${fmt(v.likes)}</small></button>
+ <button onclick="openComments(${v.id})">💬<small>${v.comments.length}</small></button>
+ <button onclick="saveVideo(${v.id})">${sv_?'🔖':'📑'}<small>Save</small></button>
+ <button onclick="openShare(${v.id})">↗️<small>Share</small></button></div>
+ <div class="cap"><b>@${esc(o.username)}</b>${tick(o)} <span class="m">${esc(maskPhone(o))}</span><div>${esc(v.caption)}</div><div class="tag">${esc(v.tags)}</div>${v.loc?`<div>📍 ${esc(v.loc)}</div>`:''}</div>
+ <div class="watermark"><div class="ft-coin ft">FT</div> FACT TOK @facttok.official</div></div>`}
+function observe(){hydrate();const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target.querySelector('video');if(!v)return;if(e.isIntersecting)v.play().catch(()=>{v.muted=true;v.play().catch(()=>{})});else v.pause()}),{threshold:.7});document.querySelectorAll('.reel').forEach(r=>io.observe(r))}
+window.followUser=e=>{const t=getU(e);if(!t||e===currentUser.email)return;
+ if(currentUser.followingList.includes(e)){currentUser.followingList=currentUser.followingList.filter(x=>x!==e);t.followers=Math.max(0,t.followers-1);toast('Unfollowed')}
+ else{currentUser.followingList.push(e);t.followers++;toast('Followed')}
+ saveAll();renderFeed()};
+window.likeVideo=id=>{const v=vid(id),e=currentUser.email;if(v.likedBy.includes(e)){v.likedBy=v.likedBy.filter(x=>x!==e);v.likes--}else{v.likedBy.push(e);v.likes++}saveAll();const b=$('likeBtn'+id);if(b)b.innerHTML=(v.likedBy.includes(e)?'❤️':'🤍')+'<small>'+fmt(v.likes)+'</small>'};
+window.saveVideo=id=>{const s=currentUser.saved,i=s.indexOf(id);if(i>=0){s.splice(i,1);toast('Removed from saved')}else{s.push(id);toast('Saved to profile')}saveAll();renderFeed()};
+window.openComments=id=>{if(vid(id).allowComments===false)return toast('Comments are turned off');selId=id;drawComments();openM('commentModal')};
+function drawComments(){const v=vid(selId);$('cmTitle').innerText=v.comments.length+' comments';$('cmList').innerHTML=v.comments.map(c=>`<div class="cm"><b>@${esc(c.u)}</b> ${esc(c.t)}</div>`).join('')||'<p class="m">Be the first to comment.</p>'}
+window.postComment=()=>{const t=$('cmInput').value.trim();if(!t)return;vid(selId).comments.push({u:currentUser.username,t});$('cmInput').value='';saveAll();drawComments();renderFeed()};
 
- window.likeVideo=function(id){const v=vid(id),e=currentUser.email;
-  if(v.likedBy.includes(e)){v.likedBy=v.likedBy.filter(x=>x!==e);v.likes--}else{v.likedBy.push(e);v.likes++}
-  saveAll();const b=$('likeBtn'+id);if(b){b.classList.toggle('liked',v.likedBy.includes(e));const s=b.querySelector('small');if(s)s.textContent=fmt(v.likes)}};
+/* ---------- SHARE ---------- */
+window.openShare=id=>{selId=id;openM('shareModal')};
+window.openReportModal=()=>{closeM('shareModal');openM('reportModal')};
+window.submitReport=()=>{const r={id:Date.now(),videoId:selId,reason:$('rpReason').value,desc:$('rpDesc').value,by:currentUser.email,date:new Date().toISOString()};const a=ld('facttok_reports',[]);a.push(r);sv('facttok_reports',a);
+ mail('VIDEO REPORT '+selId,'Reason: '+r.reason+'\nDetails: '+r.desc+'\nReported by: '+r.by+'\nVideo: '+selId);$('rpDesc').value='';closeM('reportModal');toast('Report sent to admin')};
+window.repostVideo=()=>{if(!currentUser.reposts.includes(selId))currentUser.reposts.push(selId);saveAll();closeM('shareModal');toast('Reposted to your profile')};
+window.downloadVideo=()=>{const v=vid(selId),o=getU(v.owner);if(v.allowDownload===false||(o&&o.allowDownload===false))return toast('Download is turned off for this video');
+ if(v.blobId||v.src){closeM('shareModal');return burnDL(v)}const a=document.createElement('a');if(v.src){a.href=v.src;a.target='_blank'}else{a.href=URL.createObjectURL(new Blob([v.caption+'\n\nFACT TOK @facttok.official'],{type:'text/plain'}))}
+ a.download='facttok-'+v.id;document.body.appendChild(a);a.click();a.remove();alert('Watermark FACT TOK @facttok.official added');closeM('shareModal')};
+window.shareTo=k=>{const u='https://facttok.com/reel/'+selId,e=encodeURIComponent(u);
+ if(k==='wa')window.open('https://wa.me/?text='+e);else if(k==='tw')window.open('https://twitter.com/intent/tweet?url='+e);else if(k==='fb')window.open('https://www.facebook.com/sharer/sharer.php?u='+e);
+ else{(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>toast('Link copied for Instagram share')).catch(()=>prompt('Copy this link',u))}};
 
- const _rf=window.renderFeed;
- window.renderFeed=function(){_rf.apply(this,arguments);badge()};
+/* ---------- PROFILE ---------- */
+window.showUser=function(email){const u=getU(email||currentUser.email);if(!u)return;viewing=u;const me=u.email===currentUser.email;
+ $('dotsBtn').hidden=!me;const locked=u.private&&!me&&!currentUser.followingList.includes(u.email);
+ const mine=videos.filter(v=>v.owner===u.email);
+ $('profBody').innerHTML=`<div style="text-align:center"><div style="width:80px;height:80px;margin:auto">${dpHTML(u,80)}</div><h3 style="justify-content:center;margin-top:8px">${esc(u.name)}${tick(u)}</h3><p class="m">@${esc(u.username)}</p><p>${esc(u.bio)}</p></div>
+ ${me?`<div class="row" style="margin-top:10px"><button id="editProfileBtn" onclick="openEditProfile()">Edit profile</button><button onclick="openEditBio()">Edit description</button></div>`:`<button class="pri" onclick="followUser('${esc(u.email)}');showUser('${esc(u.email)}')">${currentUser.followingList.includes(u.email)?'Following ✓':'Follow'}</button>`}
+ <div class="row stat"><div><b>${u.followingList.length}</b>Following</div><div><b>${fmt(u.followers)}</b>Followers</div><div><b>${fmt(totalLikes(u))}</b>Likes</div></div>
+ ${locked?'<p class="m" style="text-align:center">🔒 This account is private. Follow to see videos.</p>':`<div class="row" style="margin-bottom:8px"><button onclick="profTab('v')">Videos</button>${me?'<button onclick="profTab(\'r\')">Reposts</button><button onclick="profTab(\'s\')">Saved</button>':''}</div><div class="grid" id="profGrid"></div>`}`;
+ if(!locked)window.profTab('v');openM('profileModal')};
+window.profTab=t=>{const u=viewing,ids=t==='v'?videos.filter(v=>v.owner===u.email).map(v=>v.id):t==='r'?u.reposts:u.saved;
+ $('profGrid').innerHTML=ids.map(vid).filter(Boolean).map(v=>`<div>${esc(v.caption)}<br>❤️ ${fmt(v.likes)}</div>`).join('')||'<p class="m">Nothing yet</p>'};
+window.openEditProfile=()=>{$('epName').value=currentUser.name;$('epBio').value=currentUser.bio;tmpDp=null;$('epPrev').innerHTML=dpHTML(currentUser,96);openM('editProfileModal')};
+window.saveProfile=()=>{const n=$('epName').value.trim();if(!n)return toast('Name is required');Object.assign(currentUser,{name:n,bio:$('epBio').value,dp:tmpDp||currentUser.dp});saveAll();closeM('editProfileModal');showUser();renderFeed();toast('Profile updated')};
+window.openEditBio=()=>{$('ebText').value=currentUser.bio;openM('editBioModal')};
+window.saveBio=()=>{currentUser.bio=$('ebText').value;saveAll();closeM('editBioModal');showUser();toast('Description updated')};
+window.openProfileSettings=()=>{$('privateToggle').checked=!!currentUser.private;$('dlToggle').checked=currentUser.allowDownload!==false;openM('profileSettingsModal')};
+window.togglePrivate=c=>{currentUser.private=c;saveAll();toast(c?'Account is private':'Account is public')};
+window.toggleDl=c=>{currentUser.allowDownload=c;saveAll();toast(c?'Downloads allowed':'Downloads off')};
 
- /* inbox (Messenger style) */
- const msgsHTML=q=>{q=(q||'').toLowerCase();
-  const m=(currentUser.inbox||[]).slice().reverse().filter(x=>!q||String(x).toLowerCase().includes(q));
-  return m.map(x=>`<div class="mrow"><span class="ft">FT</span><div class="mt"><b>FACT TOK</b><p>${esc(x)}</p></div></div>`).join('')||'<p class="m" style="padding:20px 16px">No messages yet.</p>'};
- const drawInbox=()=>{
-  const others=users.filter(u=>u.email!==currentUser.email&&!u.banned);
-  const act=others.filter(u=>currentUser.followingList.includes(u.email)).slice(0,10);
-  const sug=others.filter(u=>!currentUser.followingList.includes(u.email)).slice(0,10);
-  $('inboxList').innerHTML=`<div class="isearch">${ic('search',20)}<input id="inbQ" placeholder="Search" oninput="ftInbQ(this.value)"></div>
-  ${act.length?`<div class="stories">${act.map(u=>`<div class="story" onclick="closeM('inboxModal');showUser('${esc(u.email)}')"><div class="sa">${dpHTML(u,56)}<i></i></div>${esc((u.name||'').split(' ')[0])}</div>`).join('')}</div>`:''}
-  <div id="inbMsgs">${msgsHTML('')}</div>
-  ${sug.length?`<div class="isec">People you may know</div>${sug.map(u=>`<div class="frow"><div class="w" onclick="closeM('inboxModal');showUser('${esc(u.email)}')">${dpHTML(u,48)}</div><div class="n"><b>${esc(u.name)}${tick(u)}</b><span class="m">@${esc(u.username)}</span></div><button class="fbtn" onclick="ftFol('${esc(u.email)}')">Follow</button></div>`).join('')}`:''}`};
- window.ftInbQ=q=>{const e=$('inbMsgs');if(e)e.innerHTML=msgsHTML(q)};
- window.ftFol=e=>{followUser(e);drawInbox()};
- window.openInbox=function(){
-  $('inboxModal').querySelector('h3').innerHTML=`<span class="bigt">Messages</span><button onclick="closeM('inboxModal')">✕</button>`;
-  drawInbox();openM('inboxModal')};
+/* ---------- BALANCE ---------- */
+window.openBalance=()=>{closeM('profileSettingsModal');$('balCoins').innerText=currentUser.coins||0;$('payInfo').innerHTML=esc(CONFIG.easypaisaInfo)+'<br>'+esc(CONFIG.jazzCashInfo)+'<br>Send payment, then submit your order. Coins arrive after admin approval.';calcPrice();openM('balanceModal')};
+const priceOf=n=>{const p=CONFIG.coinPackages.filter(x=>x.coins<=n).pop();return Math.round(n*(p?p.price/p.coins:1))};
+window.calcPrice=()=>$('coinPrice').innerText=priceOf(+$('coinOrderCoins').value||0);
+window.submitCoinOrder=()=>{const coins=+$('coinOrderCoins').value,name=$('coinOrderName').value.trim(),acc=$('coinAcc').value;if(!name||coins<1)return toast('Enter name and coins');
+ const o={id:Date.now(),userEmail:currentUser.email,userName:name,accountType:acc,accountNumber:acc==='Easypaisa'?CONFIG.easypaisaInfo:CONFIG.jazzCashInfo,coins,price:priceOf(coins),status:'pending',date:new Date().toISOString()};
+ const a=ld('facttok_coin_orders',[]);a.push(o);sv('facttok_coin_orders',a);
+ mail('COIN ORDER '+coins+' FROM '+o.userEmail,'Order: '+o.id+'\nName: '+name+'\nAccount: '+acc+'\nCoins: '+coins+'\nPrice: Rs '+o.price+'\nStatus: pending');
+ closeM('balanceModal');toast('Order sent to admin')};
 
- /* profile (Facebook style) */
- window.showUser=function(email){
-  const u=getU(email||currentUser.email);if(!u)return;pv=u;
-  const me=u.email===currentUser.email;$('dotsBtn').hidden=!me;
-  const locked=u.private&&!me&&!currentUser.followingList.includes(u.email),n=videos.filter(v=>v.owner===u.email).length,isF=currentUser.followingList.includes(u.email);
-  $('profBody').innerHTML=`<div class="pcover"></div><div class="pdp">${dpHTML(u,116)}</div>
-  <div class="pname">${esc(u.name)}${tick(u)}</div><div class="m pun">@${esc(u.username)}</div><div class="pposts"><b>${n}</b> posts</div>${u.bio?`<p class="pbio">${esc(u.bio)}</p>`:''}
-  <div class="pact">${me?`<button id="editProfileBtn" class="pri2" onclick="openEditProfile()">${ic('edit',18)} Edit profile</button><button class="grey" onclick="openEditBio()">Edit description</button>`:`<button class="pri2" onclick="followUser('${esc(u.email)}');showUser('${esc(u.email)}')">${isF?'Following ✓':'Follow'}</button>`}</div>
-  <div class="pstats"><div><b>${u.followingList.length}</b>Following</div><div><b>${fmt(u.followers)}</b>Followers</div><div><b>${fmt(totalLikes(u))}</b>Likes</div></div>
-  ${locked?'<p class="m" style="text-align:center;padding:24px">🔒 This account is private. Follow to see videos.</p>':`<div class="ptabs"><button class="on" data-p="v" onclick="profTab('v')">Videos</button>${me?'<button data-p="r" onclick="profTab(\'r\')">Reposts</button><button data-p="s" onclick="profTab(\'s\')">Saved</button>':''}</div><div class="grid" id="profGrid"></div>`}`;
-  if(!locked)window.profTab('v');openM('profileModal')};
- window.profTab=function(t){const u=pv;if(!u||!$('profGrid'))return;
-  const ids=t==='v'?videos.filter(v=>v.owner===u.email).map(v=>v.id):t==='r'?u.reposts:u.saved;
-  document.querySelectorAll('.ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===t));
-  $('profGrid').innerHTML=ids.map(vid).filter(Boolean).map(v=>`<div style="background:${v.bg||'#1c1c1c'}"><span>${esc(v.caption)}</span><em>${ic('heart',12)} ${fmt(v.likes)}</em></div>`).join('')||'<p class="m" style="grid-column:1/-1;text-align:center;padding:24px">Nothing yet</p>'};
+/* ---------- UPLOAD / INBOX ---------- */
+window.openUpload=()=>openM('uploadModal');
+window.postVideo=()=>{const cap=$('upCap').value.trim();if(!cap)return toast('Add a caption');
+ const done=src=>{videos.unshift({id:Date.now(),owner:currentUser.email,caption:cap,tags:$('upTags').value,loc:$('upLoc').value,src,likes:0,likedBy:[],comments:[],allowDownload:$('upDl').checked,bg:'linear-gradient(160deg,#07260f,#000)'});
+  if(!sv('facttok_videos',videos)){videos.shift();return}closeM('uploadModal');['upCap','upTags','upLoc','upUrl','upFile'].forEach(i=>$(i).value='');renderFeed();toast('Posted')};
+ const f=$('upFile').files[0];if(f){if(f.size>2.5e6)return toast('File too big for browser storage (max 2.5MB). Use a video URL.');const r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}else done($('upUrl').value.trim())};
+window.openInbox=()=>{$('inboxList').innerHTML=(currentUser.inbox||[]).slice().reverse().map(m=>`<div class="cm">${esc(m)}</div>`).join('')||'<p class="m">No messages yet.</p>';openM('inboxModal')};
 
- /* search icon in top bar */
- const hd=document.querySelector('#appBox header');
- const sb=document.createElement('button');sb.id='sBtn';sb.innerHTML=ic('search',26);
- sb.onclick=()=>{const o=hd.classList.toggle('sopen');sb.innerHTML=ic(o?'close':'search',26);if(o)$('search').focus();else{$('search').value='';window.renderFeed()}};
- hd.appendChild(sb);
+/* ---------- ADMIN (logo x5 in 3s, admin Gmail only) ---------- */
+window.logoTap=()=>{const n=Date.now();taps=taps.filter(t=>n-t<3000);taps.push(n);if(taps.length>=5){taps=[];if(currentUser.email===CONFIG.adminGmail){renderAdmin('orders');openM('adminModal')}else toast('Access denied')}};
+window.renderAdmin=function(t){admTab=t||admTab;let h='';
+ if(admTab==='orders')h=ld('facttok_coin_orders',[]).slice().reverse().map(o=>`<div class="adm"><b>${esc(o.userName)}</b> ${esc(o.userEmail)}<br>${o.coins} FT - Rs ${o.price} - ${esc(o.accountType)}<br>Status: ${o.status}${o.status==='pending'?`<div class="row"><button class="pri" onclick="orderAct(${o.id},'approved')">Approve</button><button onclick="orderAct(${o.id},'rejected')" style="margin-top:6px">Reject</button></div>`:''}</div>`).join('');
+ else if(admTab==='users')h=users.map(u=>`<div class="adm">${esc(u.name)} @${esc(u.username)}${tick(u)}<br>${esc(u.email)} ${u.banned?'(banned)':''}<div class="row"><button onclick="banUser('${esc(u.email)}')">${u.banned?'Unban':'Ban'}</button><button onclick="verifyUser('${esc(u.email)}')">${u.verified?'Remove tick':'Blue tick'}</button></div></div>`).join('');
+ else h=ld('facttok_reports',[]).slice().reverse().map(r=>`<div class="adm">Video ${r.videoId} - ${esc(r.reason)}<br>${esc(r.desc)}<br><span class="m">by ${esc(r.by)}</span></div>`).join('');
+ $('admBody').innerHTML=h||'<p class="m">Nothing here.</p>'};
+window.orderAct=(id,s)=>{const a=ld('facttok_coin_orders',[]),o=a.find(x=>x.id===id);if(!o)return;o.status=s;sv('facttok_coin_orders',a);const u=getU(o.userEmail);
+ if(u){if(s==='approved')u.coins=(u.coins||0)+o.coins;(u.inbox=u.inbox||[]).push('Your order of '+o.coins+' FT was '+s+'.')}
+ saveAll();if(u&&u.email===currentUser.email)updCoins();renderAdmin()};
+window.banUser=e=>{const u=getU(e);if(u&&e!==CONFIG.adminGmail){u.banned=!u.banned;saveAll();renderAdmin()}};
+window.verifyUser=e=>{const u=getU(e);if(u){u.verified=!u.verified;saveAll();renderAdmin()}};
 
- /* comments */
- drawComments=function(){const v=vid(selId);$('cmTitle').innerText=v.comments.length+' comments';
-  $('cmList').innerHTML=v.comments.map(c=>{const cu=users.find(x=>x.username===c.u)||{name:c.u,dp:''};return `<div class="cm"><div class="cav">${dpHTML(cu,38)}</div><div class="cb"><span>@${esc(c.u)}</span><div>${esc(c.t)}</div></div></div>`}).join('')||'<p class="m" style="text-align:center;padding:30px">No comments yet. Be the first!</p>'};
+/* ---------- PROFILE PICTURE ---------- */
+let tmpDp=null;
+window.pickDp=i=>{const f=i.files[0];if(!f)return;const im=new Image(),r=new FileReader();r.onload=()=>{im.onload=()=>{const c=document.createElement('canvas'),m=Math.min(im.width,im.height);c.width=c.height=256;c.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,256,256);tmpDp=c.toDataURL('image/jpeg',.85);$('epPrev').innerHTML=dpHTML({dp:tmpDp},96)};im.src=r.result};r.readAsDataURL(f);i.value=''};
 
- /* share sheet */
- const B=(c,t,fn,lab)=>`<button onclick="${fn}"><span class="sb" style="background:${c}">${t}</span>${lab}</button>`;
- $('shareModal').querySelector('.list').innerHTML=
-  B('#25d366','WA',"shareTo('wa')",'WhatsApp')+B('#1877f2','f',"shareTo('fb')",'Facebook')+B('#111;border:1px solid #333','X',"shareTo('tw')",'Twitter')+B('linear-gradient(45deg,#feda75,#d62976,#4f5bd5)','IG',"shareTo('ig')",'Instagram')+
-  B('#2a2a2a',ic('flag',24),'openReportModal()','Report')+B('#2a2a2a',ic('repeat',24),'repostVideo()','Repost')+B('#2a2a2a',ic('download',24),'downloadVideo()','Download');
+/* ---------- STORAGE FOR VIDEO FILES ---------- */
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('facttok',1);r.onupgradeneeded=()=>r.result.createObjectStore('b');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const idbPut=(k,v)=>idb().then(d=>new Promise((res,rej)=>{const t=d.transaction('b','readwrite');t.objectStore('b').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)}));
+const idbGet=k=>idb().then(d=>new Promise((res,rej)=>{const q=d.transaction('b').objectStore('b').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}));
 
- /* settings */
- $('profileSettingsModal').querySelector('.list').innerHTML=`<button onclick="openBalance()">${ic('wallet')}Balance</button>
- <button onclick="document.getElementById('privateToggle').click()">${ic('lock')}Private account<input type="checkbox" id="privateToggle" onclick="event.stopPropagation();togglePrivate(this.checked)"></button>
- <button onclick="document.getElementById('dlToggle').click()">${ic('download')}Allow downloads<input type="checkbox" id="dlToggle" onclick="event.stopPropagation();toggleDl(this.checked)"></button>
- <button onclick="closeM('profileSettingsModal');openInbox()">${ic('bell')}Notifications</button><button onclick="logout()">${ic('logout')}Log out</button>`;
+/* ---------- 216 FILTERS + FX ---------- */
+const FN=[['Normal',''],['B&W','grayscale(1) contrast(1.1)'],['Sepia','sepia(.8)'],['Vintage','sepia(.4) contrast(1.1) saturate(.8) hue-rotate(-10deg)'],['Neon','saturate(2) contrast(1.2) hue-rotate(290deg)'],['Warm','sepia(.25) saturate(1.3) brightness(1.05)'],['Cool','hue-rotate(180deg) saturate(.9) brightness(1.05)'],['Fade','contrast(.8) brightness(1.15) saturate(.7)'],['Drama','contrast(1.4) saturate(1.2) brightness(.9)'],['Noir','grayscale(1) contrast(1.6) brightness(.85)'],['Pop','saturate(2.2) contrast(1.15)'],['Dream','brightness(1.15) saturate(1.3) blur(.5px)'],['Sunset','sepia(.5) saturate(1.8) hue-rotate(-20deg)'],['Ocean','hue-rotate(160deg) saturate(1.4)'],['Forest','hue-rotate(80deg) saturate(1.3)'],['Glow','brightness(1.2) contrast(.9) saturate(1.3)']];
+const FILTERS=FN.map(a=>({n:a[0],css:a[1]}));
+for(let i=0;FILTERS.length<216;i++)FILTERS.push({n:'FT '+(FILTERS.length+1),css:`hue-rotate(${(i*37)%360}deg) saturate(${90+(i%7)*18}%) contrast(${92+(i%5)*7}%) brightness(${92+(i%4)*6}%)${i%9===0?' grayscale(.6)':''}${i%11===0?' sepia(.5)':''}`});
+const newFx=f=>({f:f||0,adj:{br:100,co:100,sa:100,bl:0,hu:0,sep:0},eff:'',speed:1,start:0,end:0,vol:100,items:[]});
+const fxCSS=x=>{if(!x||!x.adj)return'';const a=x.adj;return((FILTERS[x.f]||{}).css||'')+` brightness(${a.br}%) contrast(${a.co}%) saturate(${a.sa}%) blur(${a.bl}px) hue-rotate(${a.hu}deg) sepia(${a.sep}%)`+(x.eff==='glow'?' drop-shadow(0 0 8px #1ed760)':'')};
+const effCls=x=>x&&['shake','pulse','mirror','flip'].includes(x.eff)?'e-'+x.eff:'';
+const ovHTML=x=>x&&x.items?x.items.map((i,n)=>`<div class="ov" data-n="${n}" style="left:${i.x}%;top:${i.y}%;color:${i.c};font-size:${i.sz}px">${esc(i.v)}</div>`).join('')+(x.eff==='vig'?'<div class="vig"></div>':''):'';
+const chips=(sel,fn)=>FILTERS.map((f,i)=>`<div class="fchip ${i==sel?'on':''}" onclick="${fn}(${i})"><i style="filter:${f.css}"></i>${f.n}</div>`).join('');
+const markOn=(q,i)=>document.querySelectorAll(q+' .fchip').forEach((c,k)=>c.classList.toggle('on',k===i));
+function hydrate(){document.querySelectorAll('video[data-i]').forEach(async el=>{if(el._h)return;el._h=1;const v=vid(el.dataset.i),x=v&&v.fx;
+ if(x){el.defaultPlaybackRate=el.playbackRate=x.speed||1;el.volume=Math.min(1,(x.vol==null?100:x.vol)/100);el.ontimeupdate=()=>{if(x.end&&el.currentTime>=x.end)el.currentTime=x.start||0}}
+ if(el.dataset.b){try{const b=await idbGet(el.dataset.b);if(b){el.onloadeddata=()=>{el.playbackRate=(x&&x.speed)||1;const r=el.getBoundingClientRect();if(r.top<innerHeight*.6&&r.bottom>innerHeight*.4)el.play().catch(()=>{el.muted=true;el.play().catch(()=>{})})};el.src=URL.createObjectURL(b)}}catch(e){}}})}
 
- try{if(currentUser&&!$('appBox').hidden)window.renderFeed()}catch(e){}
-}
+/* ---------- CAMERA ---------- */
+let stream=null,facing='user',mr=null,chunks=[],recTm=null,recSec=0,camF=0,E=null;
+window.openUpload=window.openCamera=async()=>{$('camStrip').innerHTML=chips(camF,'setCamF');openM('camScreen');await startCam()};
+async function startCam(){stopCam();try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:true});$('camV').srcObject=stream;$('camV').style.filter=FILTERS[camF].css}catch(e){toast('Live camera needs https. Tap the red button to record with your phone camera')}}
+function stopCam(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null}
+window.closeCam=()=>{if(mr&&mr.state==='recording'){mr.onstop=null;mr.stop();clearInterval(recTm)}$('recBtn').classList.remove('on');$('recT').innerText='';stopCam();closeM('camScreen')};
+window.flipCam=()=>{facing=facing==='user'?'environment':'user';startCam()};
+window.setCamF=i=>{camF=i;$('camV').style.filter=FILTERS[i].css;markOn('#camStrip',i)};
+window.toggleRec=()=>{if(camMode==='live')return startLive();if(mr&&mr.state==='recording')return mr.stop();if(!stream||!window.MediaRecorder)return $('capFile').click();
+ chunks=[];recSec=0;try{mr=new MediaRecorder(stream,{videoBitsPerSecond:1500000})}catch(e){return $('capFile').click()}
+ mr.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+ mr.onstop=()=>{clearInterval(recTm);$('recBtn').classList.remove('on');$('recT').innerText='';openEditor(new Blob(chunks,{type:mr.mimeType||'video/webm'}),camF,recSec)};
+ mr.start();$('recBtn').classList.add('on');recTm=setInterval(()=>{recSec++;$('recT').innerText='● '+recSec+'s';if(recSec>=60)mr.stop()},1000)};
+window.pickVideo=i=>{const f=i.files[0];if(f)openEditor(f,camF,0);i.value=''};
 
-/* app.html ka code ready hone tak intezar */
-let tries=0;
-const t=setInterval(()=>{
- tries++;
- try{
-  if(typeof reelHTML==='function'&&typeof getU==='function'&&window.renderFeed&&document.querySelector('#appBox nav')){clearInterval(t);setup()}
- }catch(e){}
- if(tries>150)clearInterval(t);
-},100);
-})();
+/* ---------- EDITOR ---------- */
+function openEditor(blob,fx,dur,cap){stopCam();closeM('camScreen');E={blob,url:URL.createObjectURL(blob),dur:dur||0,fx:typeof fx==='object'?fx:newFx(fx),cap:cap||''};
+ const v=$('edV');v.src=E.url;v.onloadedmetadata=()=>{if(isFinite(v.duration)&&v.duration>0)E.dur=v.duration;edApply();v.play().catch(()=>{});edTab('f')};
+ v.ontimeupdate=()=>{const x=E&&E.fx;if(x&&x.end&&v.currentTime>=x.end)v.currentTime=x.start||0};edApply();openM('edScreen');edTab('f')}
+function edApply(){if(!E)return;const x=E.fx,v=$('edV');v.style.filter=fxCSS(x);v.className=effCls(x);v.defaultPlaybackRate=v.playbackRate=x.speed;v.volume=Math.min(1,x.vol/100);$('edOv').innerHTML=ovHTML(x)}
+window.closeEd=()=>{try{$('edV').pause()}catch(e){}if(E)URL.revokeObjectURL(E.url);E=null;closeM('edScreen');closeM('postScreen')};
+window.edTab=t=>{if(!E)return;document.querySelectorAll('#edTools button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));const x=E.fx,a=x.adj,d=Math.max(1,Math.floor(E.dur||10));
+ const R=(l,k,mn,mx,st)=>`<label>${l}<input type="range" min="${mn}" max="${mx}" step="${st||1}" value="${a[k]}" oninput="setAdj('${k}',this.value)"></label>`;
+ $('edPanel').innerHTML=t==='f'?`<div class="fstrip">${chips(x.f,'setEdF')}</div>`:
+ t==='a'?R('Brightness','br',50,150)+R('Contrast','co',50,150)+R('Saturation','sa',0,200)+R('Blur','bl',0,6,.5)+R('Hue','hu',0,360)+R('Vintage','sep',0,100):
+ t==='e'?[['','None'],['vig','Vignette'],['mirror','Mirror'],['flip','Flip'],['shake','Shake'],['pulse','Pulse'],['glow','Glow']].map(e=>`<button class="${x.eff===e[0]?'on':''}" onclick="setEff('${e[0]}');edTab('e')">${e[1]}</button>`).join(''):
+ t==='s'?[.3,.5,1,1.5,2,3,4].map(s=>`<button class="${x.speed==s?'on':''}" onclick="setSpeed(${s})">${s}x</button>`).join(''):
+ t==='r'?`<label>Start<input type="range" min="0" max="${d}" step=".1" value="${x.start}" oninput="setTrim('start',this.value)"></label><label>End<input type="range" min="0" max="${d}" step=".1" value="${x.end||d}" oninput="setTrim('end',this.value)"></label>`:
+ t==='t'?`<div class="row"><input id="txIn" placeholder="Type text"><input id="txCol" type="color" value="#ffffff" style="flex:0 0 50px;padding:2px"><button class="pri" style="margin:5px 0" onclick="addItem('t')">Add</button></div><button onclick="undoItem()">Undo last</button><small class="m"> Drag text on the video to move it</small>`:
+ t==='k'?'😀😍🔥💚✨🎉👑💯🚀⭐😂👍'.match(/./gu).map(e=>`<button style="font-size:22px" onclick="addItem('k','${e}')">${e}</button>`).join('')+'<button onclick="undoItem()">Undo last</button>':
+ `<label>Volume<input type="range" min="0" max="100" value="${x.vol}" oninput="E.fx.vol=+this.value;edApply()"></label><button onclick="E.fx.vol=0;edApply();edTab('m')">Mute</button>`};
+window.setAdj=(k,v)=>{E.fx.adj[k]=+v;edApply()};window.setEff=e=>{E.fx.eff=e;edApply()};window.setSpeed=s=>{E.fx.speed=s;edApply();edTab('s')};
+window.setEdF=i=>{E.fx.f=i;edApply();markOn('#edPanel',i)};window.setTrim=(k,v)=>{E.fx[k]=+v;if(k==='start')$('edV').currentTime=+v};
+window.addItem=(k,e)=>{let t=e;if(k==='t'){t=$('txIn').value.trim();if(!t)return toast('Type some text')}E.fx.items.push({v:t,x:50,y:k==='t'?50:35,c:k==='t'?$('txCol').value:'#fff',sz:k==='t'?26:48});edApply()};
+window.undoItem=()=>{E.fx.items.pop();edApply()};
+let dr=null;const st=$('edStage');
+st.addEventListener('pointerdown',e=>{const o=e.target.closest('.ov');if(o){dr=+o.dataset.n;e.preventDefault()}});
+addEventListener('pointermove',e=>{if(dr==null||!E)return;const r=st.getBoundingClientRect(),i=E.fx.items[dr];if(!i)return;i.x=Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100));i.y=Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100));edApply()});
+addEventListener('pointerup',()=>dr=null);
+
+/* ---------- POST / DRAFTS ---------- */
+window.openPost=()=>{if(!E)return;$('edV').pause();const p=$('poV');p.src=E.url;p.style.filter=fxCSS(E.fx);$('poCap').value=E.cap||'';openM('postScreen')};
+window.showTags=()=>{$('poCap').value+=($('poCap').value&&!/\s$/.test($('poCap').value)?' ':'')+'#';$('poSug').innerHTML=['#facts','#stem','#community','#FT','#viral','#learn'].map(t=>`<button onclick="insTxt('${t.slice(1)} ')">${t}</button>`).join('')};
+window.showMen=()=>{$('poCap').value+=($('poCap').value&&!/\s$/.test($('poCap').value)?' ':'')+'@';$('poSug').innerHTML=users.filter(u=>u.email!==currentUser.email).slice(0,10).map(u=>`<button onclick="insTxt('${esc(u.username)} ')">@${esc(u.username)}</button>`).join('')||'<small class="m">No users to mention yet</small>'};
+window.insTxt=s=>{$('poCap').value+=s;$('poCap').focus()};window.setLoc=l=>$('poLoc').value=l;
+window.postFinal=async()=>{if(!E)return;const cap=$('poCap').value.trim(),id=Date.now(),bid='v'+id;
+ try{await idbPut(bid,E.blob)}catch(e){return toast('Could not store this video')}
+ videos.unshift({id,owner:currentUser.email,caption:cap.replace(/#\w+/g,'').replace(/\s+/g,' ').trim(),tags:(cap.match(/#\w+/g)||[]).join(' ')||'#facts',loc:$('poLoc').value.trim(),src:'',blobId:bid,fx:E.fx,vis:$('poVis').value,allowComments:$('poCm').checked,allowDownload:$('poDl').checked,likes:0,likedBy:[],comments:[],bg:'#111'});
+ saveAll();closeEd();setTab('foryou');toast('Posted')};
+window.saveDraft=async()=>{if(!E)return;const bid='d'+Date.now();try{await idbPut(bid,E.blob)}catch(e){return toast('Could not save draft')}
+ const a=ld('facttok_drafts',[]);a.push({id:Date.now(),owner:currentUser.email,blobId:bid,fx:E.fx,dur:E.dur,caption:$('poCap').value});sv('facttok_drafts',a);closeEd();toast('Saved to drafts')};
+window.openDrafts=()=>{const d=ld('facttok_drafts',[]).filter(x=>x.owner===currentUser.email);$('draftList').innerHTML=d.map(x=>`<div class="cm" onclick="loadDraft(${x.id})" style="cursor:pointer">📝 ${esc(x.caption||'Untitled draft')} <span class="m">${new Date(x.id).toLocaleDateString()}</span></div>`).join('')||'<p class="m">No drafts yet.</p>';openM('draftModal')};
+window.loadDraft=async id=>{const x=ld('facttok_drafts',[]).find(d=>d.id===id);if(!x)return;let b=null;try{b=await idbGet(x.blobId)}catch(e){}if(!b)return toast('Draft video is missing');closeM('draftModal');openEditor(b,x.fx,x.dur,x.caption)};
+
+/* ---------- WATERMARKED DOWNLOAD ---------- */
+function wmDraw(c,w,h,user,t){const k=w/360,tl=Math.floor(t/3)%2===1,x=tl?12*k:w-132*k,y=tl?12*k:h-46*k;c.save();c.globalAlpha=.9;c.fillStyle='#1ed760';c.beginPath();c.arc(x+14*k,y+14*k,14*k,0,7);c.fill();c.fillStyle='#000';c.font='800 '+11*k+'px Inter,sans-serif';c.textAlign='center';c.fillText('FT',x+14*k,y+18*k);
+ c.textAlign='left';c.fillStyle='#fff';c.shadowColor='#000';c.shadowBlur=4;c.font='800 '+12*k+'px Inter,sans-serif';c.fillText('FACT TOK',x+34*k,y+12*k);c.font='600 '+10*k+'px Inter,sans-serif';c.fillText('@'+user,x+34*k,y+26*k);c.restore()}
+async function burnDL(v){const o=getU(v.owner)||{username:'facttok.official'},x=v.fx;let b=null;toast('Adding FACT TOK watermark... please wait');
+ const plain=()=>{const a=document.createElement('a');a.href=b?URL.createObjectURL(b):v.src;a.download='facttok-'+v.id+'.webm';document.body.appendChild(a);a.click();a.remove()};
+ try{if(v.blobId)b=await idbGet(v.blobId);const el=document.createElement('video');el.playsInline=true;el.crossOrigin='anonymous';el.src=b?URL.createObjectURL(b):v.src;
+  await new Promise((res,rej)=>{el.onloadedmetadata=res;el.onerror=rej});
+  const sc=Math.min(1,720/(el.videoWidth||720)),w=Math.round(el.videoWidth*sc)||360,h=Math.round(el.videoHeight*sc)||640,cv=document.createElement('canvas');cv.width=w;cv.height=h;const c=cv.getContext('2d');
+  const ac=new (window.AudioContext||window.webkitAudioContext)(),sr=ac.createMediaElementSource(el),gn=ac.createGain(),ds=ac.createMediaStreamDestination();gn.gain.value=x&&x.vol!=null?x.vol/100:1;sr.connect(gn);gn.connect(ds);
+  const rec=new MediaRecorder(new MediaStream([...cv.captureStream(30).getVideoTracks(),...ds.stream.getAudioTracks()]),{videoBitsPerSecond:2500000}),ch=[];rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+  const t0=x&&x.start||0;el.currentTime=t0;el.defaultPlaybackRate=el.playbackRate=(x&&x.speed)||1;let endAt=0,done=false;
+  const draw=()=>{if(done)return;const t=el.currentTime;c.save();c.filter=fxCSS(x)||'none';if(x&&x.eff==='mirror'){c.translate(w,0);c.scale(-1,1)}if(x&&x.eff==='flip'){c.translate(0,h);c.scale(1,-1)}c.drawImage(el,0,0,w,h);c.restore();
+   if(x){if(x.eff==='vig'){const g=c.createRadialGradient(w/2,h/2,w*.25,w/2,h/2,h*.7);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.85)');c.fillStyle=g;c.fillRect(0,0,w,h)}
+    c.textAlign='center';c.textBaseline='middle';c.shadowColor='#000';c.shadowBlur=4;x.items.forEach(i=>{c.fillStyle=i.c;c.font='800 '+i.sz*w/360+'px Inter,sans-serif';c.fillText(i.v,i.x/100*w,i.y/100*h)});c.shadowBlur=0}
+   if(endAt){c.fillStyle='rgba(0,0,0,.55)';c.fillRect(0,0,w,h);c.fillStyle='#1ed760';c.beginPath();c.arc(w/2,h/2-30*w/360,34*w/360,0,7);c.fill();c.fillStyle='#000';c.font='800 '+26*w/360+'px Inter,sans-serif';c.textAlign='center';c.fillText('FT',w/2,h/2-30*w/360);c.fillStyle='#fff';c.font='800 '+20*w/360+'px Inter,sans-serif';c.fillText('FACT TOK',w/2,h/2+30*w/360);c.font='600 '+14*w/360+'px Inter,sans-serif';c.fillText('@facttok.official',w/2,h/2+54*w/360)}
+   else wmDraw(c,w,h,o.username,t);requestAnimationFrame(draw)};
+  const fin=()=>{if(endAt)return;endAt=1;el.pause();setTimeout(()=>{done=true;rec.stop()},1500)};
+  el.ontimeupdate=()=>{if(x&&x.end&&el.currentTime>=x.end)fin()};el.onended=fin;
+  rec.onstop=()=>{const f=new Blob(ch,{type:rec.mimeType||'video/webm'}),a=document.createElement('a');a.href=URL.createObjectURL(f);a.download='facttok-'+v.id+'.'+(/mp4/.test(f.type)?'mp4':'webm');document.body.appendChild(a);a.click();a.remove();ac.close();toast('Saved with FACT TOK watermark')};
+  rec.start();await ac.resume();await el.play();draw()}
+ catch(e){console.error(e);if(b||v.src){plain();toast('Saved without burned-in watermark (browser limit)')}}}
+
+/* ---------- LIVE ---------- */
+let camMode='post',liveTm=null,liveSec=0;
+window.setMode=m=>{camMode=m;$('mdPost').classList.toggle('on',m==='post');$('mdLive').classList.toggle('on',m==='live');$('recBtn').firstElementChild.innerText=m==='live'?'GO LIVE':''};
+window.startLive=()=>{if(!stream)return toast('Live needs the camera. Open the site from your https link and allow camera');
+ const t=prompt('Live title (optional)','')||'';liveSec=0;$('liveV').srcObject=stream;$('liveV').style.filter=FILTERS[camF].css;$('liveViews').innerText='0';$('liveT').innerText='0:00';$('liveChat').innerHTML=`<div class="m">You are live${t?': '+esc(t):''}. Be kind in chat.</div>`;openM('liveScreen');
+ clearInterval(liveTm);liveTm=setInterval(()=>{liveSec++;$('liveT').innerText=Math.floor(liveSec/60)+':'+String(liveSec%60).padStart(2,'0')},1000)};
+window.liveSend=()=>{const t=$('liveIn').value.trim();if(!t)return;$('liveChat').insertAdjacentHTML('beforeend',`<div><b style="color:var(--g)">@${esc(currentUser.username)}</b> ${esc(t)}</div>`);$('liveIn').value='';$('liveChat').scrollTop=1e6};
+window.endLive=()=>{clearInterval(liveTm);closeM('liveScreen');closeCam();setMode('post');toast('Live ended')};
+
+/* ---------- INIT ---------- */
+window.init=function(){
+ $('suCC').innerHTML=$('liCC').innerHTML=CONFIG.countryCodes.map(c=>`<option value="${c.split(' ')[0]}">${c}</option>`).join('');
+ $('appName').innerText=CONFIG.appName;
+ users=Array.isArray(users)?users.filter(u=>u&&typeof u==='object'&&typeof u.email==='string'):[];users.forEach(normU);
+ [['ali@facttok.demo','Dr Ali','science_ali',2400],['sara@facttok.demo','Sara Khan','sara_facts',830]].forEach(d=>{if(!getU(d[0]))users.push({id:d[3],name:d[1],username:d[2],email:d[0],phone:'',cc:'',pass:Math.random()+'',bio:'Daily facts',dp:'',followers:d[3],followingList:[],saved:[],reposts:[],inbox:[],coins:0,private:false,allowDownload:true,banned:false})});
+ videos=ld('facttok_videos',[]);videos=Array.isArray(videos)?videos.filter(v=>v&&typeof v==='object'&&v.id!=null):[];videos.forEach(normV);
+ if(!videos.length)videos=[{id:1,owner:'ali@facttok.demo',caption:'Honey never spoils. Edible honey was found in 3,000-year-old Egyptian tombs.',tags:'#facts #stem',loc:'Cairo',src:'',likes:1280,likedBy:[],comments:[],allowDownload:true,bg:'linear-gradient(160deg,#052e16,#000)'},{id:2,owner:'sara@facttok.demo',caption:'A day on Venus is longer than its year.',tags:'#facts #community',loc:'Lahore',src:'',likes:940,likedBy:[],comments:[],allowDownload:true,bg:'linear-gradient(160deg,#0a2540,#000)'}];
+ const s=ld('facttok_current_user',null);if(s){currentUser=users.find(u=>u.id===s.id)||null;if(currentUser&&currentUser.banned)currentUser=null}
+ saveAll();if(currentUser)enterApp()};
+window.addEventListener('DOMContentLoaded',window.init);
+</script></body></html>
