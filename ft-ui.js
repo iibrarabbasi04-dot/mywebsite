@@ -1,0 +1,238 @@
+/* FACT TOK - UI design add-on (feed, nav, inbox, profile).
+   Sirf design badalta hai. app.html ka purana code/ids/functions nahi chhedta.
+   app.html mein </body> se pehle ye line lagayen:  <script src="ft-ui.js"></script> */
+(function(){
+if(window.__ftui)return;
+const CSS=`
+header,.top{position:absolute;left:0;right:0;max-width:480px;margin:0 auto;z-index:20;background:transparent;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+header{top:0;height:48px;border-bottom:0;padding:0 12px}
+header:before{content:"";position:absolute;left:0;right:0;top:0;height:100px;background:linear-gradient(rgba(0,0,0,.65),transparent);z-index:-1;pointer-events:none}
+.top{top:48px}
+.up{display:none}
+.coin{background:#00000070;border-radius:20px;padding:3px 12px 3px 3px;margin-left:auto;font-size:13px}
+.coin .ft{width:22px;height:22px;font-size:9px}
+#sBtn{background:none;color:#fff;padding:6px;border-radius:50%;display:grid;place-items:center}
+header #search{display:none;background:#000000a0;border:1px solid #ffffff30}
+header.sopen #search{display:block}
+header.sopen #ftLogo,header.sopen .coin{display:none}
+#ftLogo{font-size:15px}
+#search{background:#1c1c1c;border:0;font-size:13px;padding:9px 14px}
+.top{height:40px;gap:22px;border-bottom:0}
+.top button{font-size:16px;font-weight:600;padding:6px 2px;color:#ffffffb3;background:none}
+.top .on{color:#fff;font-weight:800;border-bottom:2px solid #fff;border-image:none}
+#feed{height:auto!important;flex:1;min-height:0}
+.reel{height:100%;margin:0;border-radius:0}
+.reel:after{content:"";position:absolute;left:0;right:0;bottom:0;height:50%;background:linear-gradient(transparent,rgba(0,0,0,.7));pointer-events:none}
+.side,.cap,.watermark{z-index:2}
+.fact{font-size:26px;padding:30px 84px 120px 24px}
+.side{right:10px;bottom:84px;gap:18px}
+.side button{display:flex;flex-direction:column;align-items:center;gap:3px;color:#fff;font-size:12px;font-weight:600;padding:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.65))}
+.side button svg{display:block;fill:currentColor;transition:transform .15s}
+.side button:active svg{transform:scale(.85)}
+.side small{font-size:12px;font-weight:600}
+.side .liked{color:#fe2c55}
+.side .saved{color:#ffc83d}
+.avatar{width:48px;height:48px;margin-bottom:14px}
+.followBtn{left:50%;margin-left:-10px;bottom:-10px;font-size:16px;font-weight:800;line-height:20px;border:2px solid #000;box-sizing:content-box;width:16px;height:16px;line-height:16px;margin-left:-10px}
+.followBtn.fd{background:#fff;color:#000}
+.cap{left:14px;right:86px;bottom:18px;line-height:1.4}
+.cap b{font-size:16px}
+.cap .m{font-size:12px}
+.watermark{right:auto;left:12px;bottom:auto;top:10px}
+nav{height:auto;min-height:56px;padding-bottom:env(safe-area-inset-bottom);border-top:1px solid #1e1e1e}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:#ffffff99;font-size:11px;font-weight:600;padding:6px 0;background:none;position:relative}
+nav button svg{display:block}
+nav .on{color:#fff}
+nav .plus{flex:0 0 auto;width:46px;height:30px;padding:0;margin:0 8px;border-radius:9px;background:#fff;color:#000;box-shadow:-3px 0 0 #25f4ee,3px 0 0 #fe2c55;justify-content:center}
+#inbBadge{position:absolute;top:1px;left:54%;min-width:18px;height:18px;border-radius:9px;background:#fe2c55;color:#fff;font:700 10px/18px Inter,sans-serif;text-align:center;padding:0 5px;font-style:normal}
+#inboxModal .sheet,#profileModal .sheet{height:100%;max-height:100%;border-radius:0;padding:0;background:#000}
+#inboxModal .sheet h3,#profileModal .sheet h3{position:sticky;top:0;z-index:5;margin:0;padding:12px 14px;background:#000;font-size:18px}
+#dotsBtn{background:#2a2a2a;border-radius:50%;width:36px;height:36px;padding:0}
+.bigt{font-size:26px;font-weight:800}
+.isearch{display:flex;align-items:center;gap:8px;margin:4px 14px 10px;background:#1c1c1c;border-radius:24px;padding:0 14px;color:#9a9a9a}
+.isearch input,.isearch input:focus{background:none;border:0;outline:0;margin:0;padding:11px 0}
+.stories{display:flex;gap:14px;overflow-x:auto;padding:4px 14px 12px;scrollbar-width:none}
+.story{flex:0 0 auto;width:64px;text-align:center;font-size:12px;cursor:pointer}
+.sa{position:relative;width:56px;height:56px;margin:0 auto 4px}
+.sa i{position:absolute;right:0;bottom:2px;width:14px;height:14px;border-radius:50%;background:#31d158;border:2px solid #000}
+.mrow{display:flex;gap:12px;align-items:center;padding:10px 14px}
+.mrow .ft{width:52px;height:52px;flex:0 0 52px;font-size:18px}
+.mrow .mt{min-width:0}.mrow b{display:block;font-size:16px}
+.mrow p{color:#9a9a9a;font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.isec{padding:16px 14px 6px;font-weight:800;font-size:16px}
+.frow{display:flex;gap:12px;align-items:center;padding:8px 14px}
+.frow .w{width:48px;height:48px;flex:0 0 48px}
+.frow .n{flex:1;min-width:0}.frow .n b{display:block}
+.fbtn{background:#1ed76026;color:var(--g);font-weight:700;padding:9px 18px;border-radius:8px}
+.pcover{height:130px;background:linear-gradient(135deg,#0b3d1c,#1ed760 170%)}
+.pdp{width:116px;height:116px;margin:-58px auto 0;position:relative;border-radius:50%;box-shadow:0 0 0 4px #000}
+.pdp .dp{border:3px solid #fff}
+.pname{text-align:center;font-size:26px;font-weight:800;margin-top:12px}
+.pun,.pposts,.pbio{text-align:center}
+.pposts{margin-top:4px;font-size:15px}
+.pbio{padding:6px 24px;color:#d0d0d0}
+.pact{display:flex;gap:10px;padding:14px}
+.pact button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;font-weight:700;font-size:15px;border-radius:8px}
+.pri2{background:var(--g);color:#000}.grey{background:#2a2a2a}
+.pstats{display:flex;justify-content:space-around;padding:4px 14px 14px;color:#9a9a9a;text-align:center}
+.pstats b{display:block;color:#fff;font-size:18px}
+.ptabs{display:flex;border-top:1px solid var(--l);border-bottom:1px solid var(--l)}
+.ptabs button{flex:1;background:none;border-radius:0;color:#9a9a9a;font-weight:700;padding:13px 0;border-bottom:3px solid transparent}
+.ptabs .on{color:var(--g);border-bottom-color:var(--g)}
+#profBody .grid{padding:2px}
+#profGrid div{position:relative;border-radius:0;padding:8px;font-size:12px;font-weight:600}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pop{50%{transform:scale(1.3)}}
+.side .liked svg{animation:pop .3s}
+.disc{position:absolute;right:12px;bottom:18px;width:44px;height:44px;border-radius:50%;background:#222;padding:7px;z-index:2;animation:spin 6s linear infinite}
+.disc .dp{border:0}
+.cap .cl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cap .cl.x{-webkit-line-clamp:unset}
+.sheet{background:#121212;border-radius:16px 16px 0 0}
+.sheet h3{font-size:17px;font-weight:800}
+.sheet h3 button{background:#2a2a2a;border-radius:50%;min-width:32px;height:32px;padding:0 8px;font-size:14px}
+#commentModal .sheet{height:72%;display:flex;flex-direction:column}
+#commentModal h3{justify-content:center;position:relative}
+#commentModal h3 button{position:absolute;right:0}
+#cmList{flex:1;overflow:auto}
+.cm{display:flex;gap:10px;padding:10px 0;border-bottom:0}
+.cm .cav{width:38px;height:38px;flex:0 0 38px}
+.cm .cb{min-width:0}.cm .cb span{color:#9a9a9a;font-size:12px;font-weight:600}.cm .cb div{font-size:14px;margin-top:2px;word-break:break-word}
+#commentModal .row{border-top:1px solid #2a2a2a;padding-top:8px;align-items:center}
+#cmInput{background:#2a2a2a;border:0;border-radius:22px;padding:11px 16px;margin:0;flex:4}
+#commentModal .pri{width:auto;margin:0;border-radius:22px;padding:11px 18px}
+#shareModal .list{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 4px;padding:10px 0 16px}
+#shareModal .list button{display:flex;flex-direction:column;align-items:center;gap:7px;border:0;padding:0;font-size:12px;text-align:center}
+.sb{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:17px}
+.sb svg{fill:#fff}
+#profileSettingsModal .list button{display:flex;align-items:center;gap:14px;padding:15px 4px;font-size:15px;border-bottom:1px solid #222}
+#profileSettingsModal .list button svg{color:#cfcfcf;flex:0 0 22px}
+#privateToggle,#dlToggle{-webkit-appearance:none;appearance:none;width:46px!important;height:26px;border-radius:13px;background:#444;position:relative;padding:0;border:0;margin:0 0 0 auto!important;float:none!important;transition:.2s;flex:0 0 46px;outline:0}
+#privateToggle:after,#dlToggle:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+#privateToggle:checked,#dlToggle:checked{background:var(--g)}
+#privateToggle:checked:after,#dlToggle:checked:after{left:23px}
+#balanceModal input,#balanceModal select{background:#1c1c1c;border:0;border-radius:12px;padding:13px}
+#profGrid em{position:absolute;left:8px;bottom:6px;font-style:normal;display:flex;gap:4px;align-items:center}
+`;
+const P={heart:'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
+comment:'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z',
+bookmark:'M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z',
+share:'M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z',
+home:'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z',
+people:'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+mail:'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z',
+user:'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
+plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
+search:'M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
+wallet:'M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z',
+lock:'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z',
+download:'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
+bell:'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z',
+logout:'M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z',
+flag:'M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z',
+repeat:'M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z',
+close:'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
+edit:'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'};
+const ic=(k,s)=>`<svg viewBox="0 0 24 24" width="${s||24}" height="${s||24}" fill="currentColor"><path d="${P[k]}"/></svg>`;
+let pv=null;
+
+function setup(){
+ if(window.__ftui)return;window.__ftui=1;
+ const st=document.createElement('style');st.id='ftui-css';st.textContent=CSS;document.head.appendChild(st);
+
+ /* bottom nav */
+ const n=document.querySelector('#appBox nav');
+ n.innerHTML=`<button id="nHome" class="on" onclick="setTab('foryou')">${ic('home')}<span>Home</span></button><button onclick="setTab('following')">${ic('people')}<span>Friends</span></button><button class="plus" onclick="openUpload()">${ic('plus',22)}</button><button onclick="openInbox()">${ic('mail')}<span>Inbox</span><i id="inbBadge" hidden></i></button><button onclick="showUser()">${ic('user')}<span>Profile</span></button>`;
+ const badge=()=>{const b=$('inbBadge');if(!b||!currentUser)return;const c=(currentUser.inbox||[]).length;b.hidden=!c;b.textContent=c>99?'99+':c};
+
+ /* feed card */
+ reelHTML=function(v){
+  const o=getU(v.owner)||{name:'User',username:'user',followers:0,followingList:[]};
+  const f=currentUser.followingList.includes(v.owner),me=v.owner===currentUser.email,liked=v.likedBy.includes(currentUser.email),sd=currentUser.saved.includes(v.id);
+  return `<div class="reel" ondblclick="likeVideo(${v.id})" style="background:${v.bg||'#111'}">
+ ${(v.src||v.blobId)?`<video class="${effCls(v.fx)}" ${v.src?`src="${esc(v.src)}"`:''} data-b="${v.blobId||''}" data-i="${v.id}" loop playsinline onclick="this.paused?this.play():this.pause()" style="filter:${fxCSS(v.fx)}"></video>`:`<div class="fact">${esc(v.caption)}</div>`}${ovHTML(v.fx)}
+ <div class="side"><div class="avatar" onclick="showUser('${esc(v.owner)}')">${dpHTML(o,48)}${me?'':`<div class="followBtn ${f?'fd':''}" onclick="event.stopPropagation();followUser('${esc(v.owner)}')">${f?'✓':'+'}</div>`}</div>
+ <button id="likeBtn${v.id}" class="${liked?'liked':''}" onclick="likeVideo(${v.id})">${ic('heart',34)}<small>${fmt(v.likes)}</small></button>
+ <button onclick="openComments(${v.id})">${ic('comment',32)}<small>${v.comments.length}</small></button>
+ <button class="${sd?'saved':''}" onclick="saveVideo(${v.id})">${ic('bookmark',32)}<small>Save</small></button>
+ <button onclick="openShare(${v.id})">${ic('share',32)}<small>Share</small></button></div>
+ <div class="disc" onclick="showUser('${esc(v.owner)}')">${dpHTML(o,30)}</div>
+ <div class="cap"><b>@${esc(o.username)}</b>${tick(o)} <span class="m">${esc(maskPhone(o))}</span><div class="cl" onclick="this.classList.toggle('x')">${esc(v.caption)}</div><div class="tag">${esc(v.tags)}</div>${v.loc?`<div>📍 ${esc(v.loc)}</div>`:''}</div>
+ <div class="watermark"><div class="ft-coin ft">FT</div> FACT TOK @facttok.official</div></div>`};
+
+ window.likeVideo=function(id){const v=vid(id),e=currentUser.email;
+  if(v.likedBy.includes(e)){v.likedBy=v.likedBy.filter(x=>x!==e);v.likes--}else{v.likedBy.push(e);v.likes++}
+  saveAll();const b=$('likeBtn'+id);if(b){b.classList.toggle('liked',v.likedBy.includes(e));const s=b.querySelector('small');if(s)s.textContent=fmt(v.likes)}};
+
+ const _rf=window.renderFeed;
+ window.renderFeed=function(){_rf.apply(this,arguments);badge()};
+
+ /* inbox (Messenger style) */
+ const msgsHTML=q=>{q=(q||'').toLowerCase();
+  const m=(currentUser.inbox||[]).slice().reverse().filter(x=>!q||String(x).toLowerCase().includes(q));
+  return m.map(x=>`<div class="mrow"><span class="ft">FT</span><div class="mt"><b>FACT TOK</b><p>${esc(x)}</p></div></div>`).join('')||'<p class="m" style="padding:20px 16px">No messages yet.</p>'};
+ const drawInbox=()=>{
+  const others=users.filter(u=>u.email!==currentUser.email&&!u.banned);
+  const act=others.filter(u=>currentUser.followingList.includes(u.email)).slice(0,10);
+  const sug=others.filter(u=>!currentUser.followingList.includes(u.email)).slice(0,10);
+  $('inboxList').innerHTML=`<div class="isearch">${ic('search',20)}<input id="inbQ" placeholder="Search" oninput="ftInbQ(this.value)"></div>
+  ${act.length?`<div class="stories">${act.map(u=>`<div class="story" onclick="closeM('inboxModal');showUser('${esc(u.email)}')"><div class="sa">${dpHTML(u,56)}<i></i></div>${esc((u.name||'').split(' ')[0])}</div>`).join('')}</div>`:''}
+  <div id="inbMsgs">${msgsHTML('')}</div>
+  ${sug.length?`<div class="isec">People you may know</div>${sug.map(u=>`<div class="frow"><div class="w" onclick="closeM('inboxModal');showUser('${esc(u.email)}')">${dpHTML(u,48)}</div><div class="n"><b>${esc(u.name)}${tick(u)}</b><span class="m">@${esc(u.username)}</span></div><button class="fbtn" onclick="ftFol('${esc(u.email)}')">Follow</button></div>`).join('')}`:''}`};
+ window.ftInbQ=q=>{const e=$('inbMsgs');if(e)e.innerHTML=msgsHTML(q)};
+ window.ftFol=e=>{followUser(e);drawInbox()};
+ window.openInbox=function(){
+  $('inboxModal').querySelector('h3').innerHTML=`<span class="bigt">Messages</span><button onclick="closeM('inboxModal')">✕</button>`;
+  drawInbox();openM('inboxModal')};
+
+ /* profile (Facebook style) */
+ window.showUser=function(email){
+  const u=getU(email||currentUser.email);if(!u)return;pv=u;
+  const me=u.email===currentUser.email;$('dotsBtn').hidden=!me;
+  const locked=u.private&&!me&&!currentUser.followingList.includes(u.email),n=videos.filter(v=>v.owner===u.email).length,isF=currentUser.followingList.includes(u.email);
+  $('profBody').innerHTML=`<div class="pcover"></div><div class="pdp">${dpHTML(u,116)}</div>
+  <div class="pname">${esc(u.name)}${tick(u)}</div><div class="m pun">@${esc(u.username)}</div><div class="pposts"><b>${n}</b> posts</div>${u.bio?`<p class="pbio">${esc(u.bio)}</p>`:''}
+  <div class="pact">${me?`<button id="editProfileBtn" class="pri2" onclick="openEditProfile()">${ic('edit',18)} Edit profile</button><button class="grey" onclick="openEditBio()">Edit description</button>`:`<button class="pri2" onclick="followUser('${esc(u.email)}');showUser('${esc(u.email)}')">${isF?'Following ✓':'Follow'}</button>`}</div>
+  <div class="pstats"><div><b>${u.followingList.length}</b>Following</div><div><b>${fmt(u.followers)}</b>Followers</div><div><b>${fmt(totalLikes(u))}</b>Likes</div></div>
+  ${locked?'<p class="m" style="text-align:center;padding:24px">🔒 This account is private. Follow to see videos.</p>':`<div class="ptabs"><button class="on" data-p="v" onclick="profTab('v')">Videos</button>${me?'<button data-p="r" onclick="profTab(\'r\')">Reposts</button><button data-p="s" onclick="profTab(\'s\')">Saved</button>':''}</div><div class="grid" id="profGrid"></div>`}`;
+  if(!locked)window.profTab('v');openM('profileModal')};
+ window.profTab=function(t){const u=pv;if(!u||!$('profGrid'))return;
+  const ids=t==='v'?videos.filter(v=>v.owner===u.email).map(v=>v.id):t==='r'?u.reposts:u.saved;
+  document.querySelectorAll('.ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===t));
+  $('profGrid').innerHTML=ids.map(vid).filter(Boolean).map(v=>`<div style="background:${v.bg||'#1c1c1c'}"><span>${esc(v.caption)}</span><em>${ic('heart',12)} ${fmt(v.likes)}</em></div>`).join('')||'<p class="m" style="grid-column:1/-1;text-align:center;padding:24px">Nothing yet</p>'};
+
+ /* search icon in top bar */
+ const hd=document.querySelector('#appBox header');
+ const sb=document.createElement('button');sb.id='sBtn';sb.innerHTML=ic('search',26);
+ sb.onclick=()=>{const o=hd.classList.toggle('sopen');sb.innerHTML=ic(o?'close':'search',26);if(o)$('search').focus();else{$('search').value='';window.renderFeed()}};
+ hd.appendChild(sb);
+
+ /* comments */
+ drawComments=function(){const v=vid(selId);$('cmTitle').innerText=v.comments.length+' comments';
+  $('cmList').innerHTML=v.comments.map(c=>{const cu=users.find(x=>x.username===c.u)||{name:c.u,dp:''};return `<div class="cm"><div class="cav">${dpHTML(cu,38)}</div><div class="cb"><span>@${esc(c.u)}</span><div>${esc(c.t)}</div></div></div>`}).join('')||'<p class="m" style="text-align:center;padding:30px">No comments yet. Be the first!</p>'};
+
+ /* share sheet */
+ const B=(c,t,fn,lab)=>`<button onclick="${fn}"><span class="sb" style="background:${c}">${t}</span>${lab}</button>`;
+ $('shareModal').querySelector('.list').innerHTML=
+  B('#25d366','WA',"shareTo('wa')",'WhatsApp')+B('#1877f2','f',"shareTo('fb')",'Facebook')+B('#111;border:1px solid #333','X',"shareTo('tw')",'Twitter')+B('linear-gradient(45deg,#feda75,#d62976,#4f5bd5)','IG',"shareTo('ig')",'Instagram')+
+  B('#2a2a2a',ic('flag',24),'openReportModal()','Report')+B('#2a2a2a',ic('repeat',24),'repostVideo()','Repost')+B('#2a2a2a',ic('download',24),'downloadVideo()','Download');
+
+ /* settings */
+ $('profileSettingsModal').querySelector('.list').innerHTML=`<button onclick="openBalance()">${ic('wallet')}Balance</button>
+ <button onclick="document.getElementById('privateToggle').click()">${ic('lock')}Private account<input type="checkbox" id="privateToggle" onclick="event.stopPropagation();togglePrivate(this.checked)"></button>
+ <button onclick="document.getElementById('dlToggle').click()">${ic('download')}Allow downloads<input type="checkbox" id="dlToggle" onclick="event.stopPropagation();toggleDl(this.checked)"></button>
+ <button onclick="closeM('profileSettingsModal');openInbox()">${ic('bell')}Notifications</button><button onclick="logout()">${ic('logout')}Log out</button>`;
+
+ try{if(currentUser&&!$('appBox').hidden)window.renderFeed()}catch(e){}
+}
+
+/* app.html ka code ready hone tak intezar */
+let tries=0;
+const t=setInterval(()=>{
+ tries++;
+ try{
+  if(typeof reelHTML==='function'&&typeof getU==='function'&&window.renderFeed&&document.querySelector('#appBox nav')){clearInterval(t);setup()}
+ }catch(e){}
+ if(tries>150)clearInterval(t);
+},100);
+})();
