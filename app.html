@@ -1,11 +1,10 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FACT TOK</title></head>
 <body style="background:#000;color:#fff;font-family:sans-serif"><p style="padding:20px">Loading FACT TOK...</p>
 <script>
-/* ===== NEW ADD-ON (app.html ko chhue baghair, is file ke andar) ===== */
 var MORE='('+function(){
   var $=function(id){return document.getElementById(id)};
   var st=document.createElement('style');
-  st.textContent='.ftsh{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}.ftsh>div{background:#121212;width:100%;max-width:480px;max-height:85vh;overflow:auto;border-radius:20px 20px 0 0;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 16px)}.ftrow{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid #2a2a2a}.ftrow .dpw{width:44px;height:44px;flex:0 0 44px}.ftrow .nm{flex:1;min-width:0;cursor:pointer}.ftrow button{padding:8px 12px;font-size:12px;width:auto;margin:0}.ftic{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;margin-right:12px;font-size:17px;vertical-align:middle}#search{display:none}#ftSearchBtn{background:none;font-size:20px;padding:6px 10px;margin-left:auto}.fth{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:800;font-size:16px}';
+  st.textContent='.ftsh{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}.ftsh>div{background:#121212;width:100%;max-width:480px;max-height:85vh;overflow:auto;border-radius:20px 20px 0 0;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 16px)}.ftrow{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid #2a2a2a}.ftrow.dpw{width:44px;height:44px;flex:0 0 44px}.ftrow.nm{flex:1;min-width:0;cursor:pointer}.ftrow button{padding:8px 12px;font-size:12px;width:auto;margin:0}.ftic{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;margin-right:12px;font-size:17px;vertical-align:middle}#search{display:none}#ftSearchBtn{background:none;font-size:20px;padding:6px 10px;margin-left:auto}.fth{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:800;font-size:16px}';
   document.head.appendChild(st);
   function sh(html){var o=document.querySelector('.ftsh');if(o)o.remove();var s=document.createElement('div');s.className='ftsh';s.innerHTML='<div>'+html+'</div>';s.onclick=function(e){if(e.target===s)s.remove()};document.body.appendChild(s);return s}
   function rowU(u){var me=u.email===currentUser.email,f=currentUser.followingList.indexOf(u.email)>-1;
@@ -14,54 +13,40 @@ var MORE='('+function(){
     var n=e.target.closest('[data-e]'),f=e.target.closest('[data-f]');
     if(n){s.remove();showUser(n.dataset.e)}
     else if(f){followUser(f.dataset.f);again()}})}
-
-  /* 1) Followers / Following list */
   function showList(kind,u){
     var arr=kind==='following'?u.followingList.map(getU).filter(Boolean):users.filter(function(x){return x.followingList.indexOf(u.email)>-1});
     var s=sh('<div class="fth"><span>'+(kind==='following'?'Following':'Followers')+' ('+arr.length+')</span><button onclick="this.closest(\'.ftsh\').remove()">✕</button></div>'+(arr.map(rowU).join('')||'<p class="m" style="padding:20px 0">Abhi koi nahi.</p>')+(kind==='followers'&&u.followers>arr.length?'<p class="m" style="padding:10px 0">Baqi followers ke account is phone par maujood nahi.</p>':''));
     wire(s,function(){showList(kind,u)})}
-
-  /* 3) Doosre user ko inbox message */
   function dmBox(u){
     var s=sh('<div class="fth"><span>Message @'+esc(u.username)+'</span><button onclick="this.closest(\'.ftsh\').remove()">✕</button></div><textarea id="ftDm" rows="3" maxlength="300" placeholder="Message likhein..."></textarea><button class="pri" id="ftDmGo">Send</button>');
     $('ftDmGo').onclick=function(){var t=$('ftDm').value.trim();if(!t)return toast('Message likhein');var T=getU(u.email);if(!T)return;T.inbox.push('✉️ @'+currentUser.username+': '+t);saveAll();s.remove();toast('Message bhej diya')}}
-
   var _su=window.showUser;
   window.showUser=function(email){
-    _su(email);var u=viewing,sb=document.querySelector('#profBody .stat');if(!u)return;
+    _su(email);var u=viewing,sb=document.querySelector('#profBody.stat');if(!u)return;
     if(sb){var d=sb.children;d[0].style.cursor=d[1].style.cursor='pointer';d[0].onclick=function(){showList('following',u)};d[1].onclick=function(){showList('followers',u)}}
     if(u.email!==currentUser.email){var fb=document.querySelector('#profBody>button.pri');if(fb){var m=document.createElement('button');m.textContent='✉️ Message';m.style.cssText='width:100%;margin-top:6px';m.onclick=function(){dmBox(u)};fb.after(m)}}};
-
-  /* 2) Comment delete (apna comment, video ka malik, ya admin) */
   window.drawComments=function(){
     var v=vid(selId),me=currentUser;$('cmTitle').innerText=v.comments.length+' comments';
     $('cmList').innerHTML=v.comments.map(function(c,i){var can=c.u===me.username||v.owner===me.email||me.email===CONFIG.adminGmail;
       return '<div class="cm" style="display:flex;gap:8px"><div style="flex:1"><b>@'+esc(c.u)+'</b> '+esc(c.t)+'</div>'+(can?'<button style="padding:2px 8px;background:none" onclick="ftDelCm('+i+')">🗑</button>':'')+'</div>'}).join('')||'<p class="m">Be the first to comment.</p>'};
   window.ftDelCm=function(i){var v=vid(selId);if(!v||!confirm('Ye comment delete karein?'))return;v.comments.splice(i,1);saveAll();drawComments();renderFeed();toast('Comment delete ho gaya')};
-
-  /* 4) Search button -> alag search bar (full screen) */
   var sbtn=document.createElement('button');sbtn.id='ftSearchBtn';sbtn.textContent='🔍';sbtn.onclick=openSearch;
-  document.querySelector('header').insertBefore(sbtn,document.querySelector('header .coin'));
+  document.querySelector('header').insertBefore(sbtn,document.querySelector('header.coin'));
   function openSearch(){
     var s=sh('<div style="display:flex;gap:8px;align-items:center"><input id="ftQ" placeholder="Search facts, users, #tags" style="margin:0"><button id="ftQx">✕</button></div><div id="ftRes"></div>');
     s.style.alignItems='stretch';s.firstElementChild.style.cssText='max-width:480px;height:100%;max-height:100%;border-radius:0;padding:14px;background:#000';
-    var picked=false;
     function res(){var q=$('ftQ').value.toLowerCase().trim();
       if(!q){$('ftRes').innerHTML='<p class="m" style="padding:20px 0">Naam, @username ya #tag likhein.</p>';return}
-      var us=users.filter(function(u){return !u.banned&&(u.name+' '+u.username).toLowerCase().indexOf(q.replace('@',''))>-1});
+      var us=users.filter(function(u){return!u.banned&&(u.name+' '+u.username).toLowerCase().indexOf(q.replace('@',''))>-1});
       var vs=videos.filter(function(v){return v.vis!=='me'&&(v.caption+' '+v.tags).toLowerCase().indexOf(q)>-1});
       $('ftRes').innerHTML=(us.length?'<div class="fth" style="margin-top:12px">Users</div>'+us.map(rowU).join(''):'')+(vs.length?'<div class="fth" style="margin-top:12px">Videos</div>'+vs.map(function(v){return '<div class="ftrow"><div class="nm" data-v="1">'+esc(v.caption||'Video')+'<div class="tag">'+esc(v.tags)+'</div></div></div>'}).join(''):'')||'<p class="m" style="padding:20px 0">Kuch nahi mila.</p>'}
     $('ftQ').oninput=res;res();
     $('ftQx').onclick=function(){$('search').value='';renderFeed();s.remove()};
     s.addEventListener('click',function(e){var v=e.target.closest('[data-v]');if(v){$('search').value=$('ftQ').value;renderFeed();s.remove();toast('Search result dikha diye')}});
     wire(s,res);setTimeout(function(){$('ftQ').focus()},100)}
-
-  /* 5) Share menu: har option ke saath rangeen icon */
-  var L=document.querySelector('#shareModal .list');
+  var L=document.querySelector('#shareModal.list');
   if(L){var it=[['#fe2c55','🚩','Report','openReportModal()'],['#25f4ee','🔁','Repost','repostVideo()'],['#1ed760','⬇️','Download','downloadVideo()'],['#25d366','💬','WhatsApp',"shareTo('wa')"],['#1d9bf0','🐦','Twitter',"shareTo('tw')"],['#1877f2','📘','Facebook',"shareTo('fb')"],['#e1306c','📸','Instagram (copy link)',"shareTo('ig')"],['#555','🔗','Copy link',"shareTo('cp')"]];
     L.innerHTML=it.map(function(a){return '<button onclick="'+a[3]+'"><span class="ftic" style="background:'+a[0]+'">'+a[1]+'</span>'+a[2]+'</button>'}).join('')}
-
-  /* 6) Video ko 2 second dabane par Save option */
   var HOLD=2000,timer=null,sx=0,sy=0,swallow=false;
   function videoAt(x,y){var l=document.elementsFromPoint(x,y);for(var i=0;i<l.length;i++){if(l[i].tagName==='VIDEO'&&l[i].dataset.i)return l[i]}return null}
   function openHold(el){
@@ -82,58 +67,11 @@ var MORE='('+function(){
 }.toString()+')();';
 
 fetch('app.html').then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(h){
-  /* NEW: official ID patch (fact-new.html se) */
   [["const verified=u=>u.verified||(","const verified=u=>u.verified||u.email===CONFIG.adminGmail||("],
    ["' <span title=\"Verified\" style=\"color:#20d5ec\">✅</span>'","(u.email===CONFIG.adminGmail?' <span title=\"Official FACT TOK account\" style=\"color:#1ed760\">✅ Official</span>':' <span title=\"Verified\" style=\"color:#20d5ec\">✅</span>')"]
-  ].forEach(function(p){if(h.indexOf(p[0])>-1)h=h.replace(p[0],function(){return p[1]});else console.warn('FT patch skipped:',p[0])});
-  /* NEW: ft-extra.js ka script tag (cloud se pehle) + ft-ui.js (naya design) */
+  ].forEach(function(p){if(h.indexOf(p[0])>-1)h=h.replace(p[0],function(){return p[1]});});
   var EXTRA='<script src="ft-extra.js?v=1"><\/script><script src="ft-ui.js?v=1"><\/script><script src="ft-withdraw.js?v=4"><\/script><script>(function(){function c(){var a=document.getElementById("ftCamFrame");if(a)a.remove();var b=document.getElementById("ftCamX");if(b)b.remove()}function o(){c();var f=document.createElement("iframe");f.id="ftCamFrame";f.src="ft-camera.html";f.allow="camera;microphone;autoplay";f.style.cssText="position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9999;background:#000";document.body.appendChild(f);var x=document.createElement("button");x.id="ftCamX";x.textContent="✕";x.style.cssText="position:fixed;top:12px;right:12px;z-index:10000;width:38px;height:38px;border:0;border-radius:50%;background:#000a;color:#fff;font-size:16px";x.onclick=c;document.body.appendChild(x)}window.openUpload=window.openCamera=o;window.ftCloseCam=c;addEventListener("message",function(e){if(e.data==="ftclose")c()})})();<\/script>';
   h=h.replace('</body>',function(){return EXTRA+'<script>'+MORE+'<\/script><script type="module" src="facttok-cloud.js"><\/script></body>'});
-  document.open();document.write(h)// ===== FT 8K FILTER - NAME: FT PARI FILTER ✨ =====
-window.ftFilterOn = false;
-window.apply8KBeautyFilter = function(video) {
-    if(window.ftFilterOn) return; // ek bar hi
-    window.ftFilterOn = true;
-    let canvas = document.createElement('canvas');
-    let ctx = canvas.getContext('2d');
-    let container = video.parentElement;
-    container.style.position = 'relative';
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0'; canvas.style.left = '0';
-    canvas.style.width = '100%'; canvas.style.height = '100%';
-    canvas.style.zIndex = '5';
-    container.appendChild(canvas);
-    
-    function frame() {
-        if(video.paused) { requestAnimationFrame(frame); return; }
-        canvas.width = video.videoWidth || 400;
-        canvas.height = video.videoHeight || 700;
-        ctx.filter = 'contrast(1.15) saturate(1.25) brightness(1.08)';
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // Face smooth + white
-        let x = canvas.width*0.2, y = canvas.height*0.15, w = canvas.width*0.6, h = canvas.height*0.6;
-        ctx.globalCompositeOperation = 'soft-light';
-        ctx.filter = 'blur(7px) brightness(1.35)';
-        ctx.drawImage(canvas, x, y, w, h, x, y, w, h);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.filter = 'none';
-        // Makeup - pink lips + blush
-        ctx.fillStyle = 'rgba(255,105,180,0.16)';
-        ctx.beginPath(); ctx.ellipse(canvas.width/2, canvas.height*0.65, w*0.12, h*0.06, 0,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,182,193,0.18)';
-        ctx.beginPath(); ctx.ellipse(canvas.width*0.35, canvas.height*0.55, w*0.12, h*0.08, 0,0,Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(canvas.width*0.65, canvas.height*0.55, w*0.12, h*0.08, 0,0,Math.PI*2); ctx.fill();
-        requestAnimationFrame(frame);
-    }
-    frame();
-    document.getElementById('filterBtnName').innerText = 'FT PARI ON ✨';
-    toast('FT PARI FILTER ON - 8K HD');
-}
-window.remove8KFilter = function() {
-    document.querySelectorAll('canvas').forEach(c=>{ if(c.style.zIndex=='5') c.remove(); });
-    window.ftFilterOn = false;
-    document.getElementById('filterBtnName').innerText = 'FT PARI ✨';
-    toast('Filter OFF');
-  };document.close();
+  document.open();document.write(h);document.close();
 }).catch(function(){document.body.innerHTML='<p style="padding:20px">app.html not found. Upload app.html next to this file.</p>'});
 </script></body></html>
