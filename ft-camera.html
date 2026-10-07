@@ -17,22 +17,24 @@ html,body{margin:0;height:100%;background:#000;color:#fff;font:14px system-ui,-a
 .fx{flex:0 0 auto;scroll-snap-align:center;margin:0 7px;width:62px;height:62px;border-radius:50%;border:2px solid rgba(255,255,255,.6);overflow:hidden;background:#333;transition:width .15s,height .15s,margin .15s}
 .fx canvas{width:100%;height:100%;display:block;pointer-events:none}
 .fx.sel{width:92px;height:92px;margin:0 3px;border:5px solid #fff}
-body.rec .fx.sel{border-color:#ff2d55}
+body.vm .fx.sel{border-color:#ff2d55}body.rec .fx.sel{border-radius:26px;border-color:#ff2d55}
+#modes{display:flex;justify-content:center;gap:12px;font-weight:700;font-size:15px;color:#ccc;padding:2px 0 4px}
+#modes span{padding:7px 22px;border-radius:20px;background:rgba(255,255,255,.14)}#modes .on{background:#fffc00;color:#000}
 #tabs{display:flex;justify-content:space-around;padding:6px 8px 10px;font-weight:700;color:#bbb}
 #tabs span{padding:6px 14px;border-radius:18px}
 #tabs .on{background:#fff;color:#000}
 #rev{position:fixed;inset:0;background:#000;z-index:30;display:none;flex-direction:column}
 #revc{flex:1;display:flex;min-height:0}
 #revc video,#revc img{flex:1;min-width:0;width:100%;object-fit:contain}
-#rev .b{display:flex;gap:12px;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 14px)}
-.btn{flex:1;border:0;border-radius:26px;padding:14px;font-weight:700;font-size:15px;background:#2a2a2a;color:#fff}
+#rev .b{display:flex;gap:10px;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 14px)}
+.btn{flex:1;border:0;border-radius:26px;padding:14px 6px;font-weight:700;font-size:15px;background:#2a2a2a;color:#fff}
 .btn.p{background:#fffc00;color:#000}
-#toast{position:fixed;left:50%;top:80px;transform:translateX(-50%);background:rgba(0,0,0,.75);padding:8px 16px;border-radius:20px;z-index:40;display:none}
+#toast{position:fixed;left:50%;top:80px;transform:translateX(-50%);background:rgba(0,0,0,.75);padding:8px 16px;border-radius:20px;z-index:40;display:none;text-align:center;max-width:90%}
 </style></head><body>
 <canvas id="cv" width="720" height="1280"></canvas>
 <div id="prog"></div><div id="cd"></div>
 <div id="side">
- <button class="ib" id="flip">🔄</button>
+ <button class="ib" id="flip"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 8a8 8 0 0 0-14-2L4 8"/><path d="M4 3v5h5"/><path d="M4 16a8 8 0 0 0 14 2l2-2"/><path d="M20 21v-5h-5"/></svg></button>
  <button class="ib" id="flash">⚡</button>
  <button class="ib" id="timer">⏱</button>
  <button class="ib" id="beauty">✨</button>
@@ -41,14 +43,17 @@ body.rec .fx.sel{border-color:#ff2d55}
 </div>
 <div id="bot">
  <div id="name"></div><div id="car"></div>
+ <div id="modes"><span class="on" data-m="p">Photo</span><span data-m="v">Video</span></div>
  <div id="tabs"><span class="on">All</span><span>Beauty</span><span>Makeup</span><span>Color</span><span>Fun</span></div>
 </div>
-<div id="rev"><div id="revc"></div><div class="b"><button class="btn" id="retake">Retake</button><button class="btn p" id="save">Save</button></div></div>
+<div id="rev"><div id="revc"></div><div class="b"><button class="btn" id="retake">Retake</button><button class="btn" id="save">Save</button><button class="btn p" id="up">Upload</button></div></div>
 <div id="toast"></div>
 <script>
+// ====== SETTING: apne server ka upload link yahan likhein (POST, form field "file"). Khali ho to phone ka Share menu khulega ======
+const UPLOAD_URL='';
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d'),car=$('car');
-const vid=document.createElement('video');vid.muted=true;vid.playsInline=true;
-// ---- effects: f=filter, t=tint, o=overlay, m=makeup, l=lens (face par chipakne wala), b=beauty ----
+const vid=document.createElement('video');vid.muted=true;vid.playsInline=true;vid.setAttribute('playsinline','');
+const FILT=typeof ctx.filter==='string';
 const G={
 Beauty:[
 {n:'Pari',f:'contrast(1.1) saturate(1.2) brightness(1.1)',o:'blush',m:{l:'rgba(255,90,150,.45)',b:'rgba(255,120,160,.3)'},b:.6,c:'#ff8fb8'},
@@ -87,49 +92,62 @@ Fun:[
 {n:'Sparkle',f:'brightness(1.08) saturate(1.2)',o:'spark',c:'#fff3a0'},
 {n:'Hearts',f:'saturate(1.2)',t:'rgba(255,60,120,.12)',o:'hearts',c:'#ff3c78'}]};
 const E=[{n:'Normal',f:'',k:'',c:'#888'}];for(const k in G)G[k].forEach(e=>{e.k=k;E.push(e)});
-let face=null,lm=null,zoom=1,qi=1,cur=0,beauty=.5,beautyOn=true,front=true,stream=null,rec=null,recording=false,flashOn=false,timerS=0,parts=[],lastBlob=null,isPhoto=false,th=[],tk=0;
+let face=null,lm=null,miss=0,zoom=1,qi=1,cur=0,beauty=.5,beautyOn=true,front=true,stream=null,rec=null,recording=false,flashOn=false,timerS=0,parts=[],lastBlob=null,isPhoto=false,th=[],tk=0;
 const Q=[['HD',1280],['FHD',1920],['4K',3840]];
-// ---- face landmarks: hont, aankhein, chehre ka kinara ----
 const OL=[61,146,91,181,84,17,314,405,321,375,291,409,270,269,267,0,37,39,40,185],IL=[78,95,88,178,87,14,317,402,318,324,308,415,310,311,312,13,82,81,80,191];
 const LE=[33,246,161,160,159,158,157,173,133],RE=[263,466,388,387,386,385,384,398,362];
-const OV=[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
+// ---- landmark -> screen: video "cover" fit + zoom + mirror (front) ----
 function P(i,W,H){const q=lm[i],vw=vid.videoWidth,vh=vid.videoHeight,s=Math.max(W/vw,H/vh)*zoom;let x=q.x*vw*s+(W-vw*s)/2;const y=q.y*vh*s+(H-vh*s)/2;if(front)x=W-x;return[x,y]}
-async function initFace(){try{const M='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14',{FaceLandmarker:F,FilesetResolver:R}=await import(M+'/vision_bundle.mjs'),fs=await R.forVisionTasks(M+'/wasm');
- face=await F.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numFaces:1})}catch(e){toast('Face tracking load nahi hua (internet check karein)')}}
-// ---- camera ----
-function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2200)}
-async function cam(){try{if(stream)stream.getTracks().forEach(t=>t.stop());
- stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:front?'user':'environment',width:{ideal:Q[qi][1]},height:{ideal:Math.round(Q[qi][1]*9/16)}},audio:true});
+// ---- face detection: chhote (480px) frame par, taake tez chale aur lens peeche na rahe ----
+const dc=document.createElement('canvas'),dx=dc.getContext('2d',{willReadFrequently:false});
+async function initFace(){const M='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+ try{const{FaceLandmarker:F,FilesetResolver:R}=await import(M+'/vision_bundle.mjs'),fs=await R.forVisionTasks(M+'/wasm');
+  for(const d of['GPU','CPU']){try{face=await F.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:d},runningMode:'VIDEO',numFaces:1});break}catch(e){}}
+  if(!face)throw 0}catch(e){toast('Face tracking load nahi hua (internet check karein)')}}
+function detect(){if(!face||vid.readyState<2||!vid.videoWidth)return;const sc=480/Math.min(vid.videoWidth,vid.videoHeight),w=Math.round(vid.videoWidth*sc),h=Math.round(vid.videoHeight*sc);
+ if(dc.width!==w||dc.height!==h){dc.width=w;dc.height=h}dx.drawImage(vid,0,0,w,h);
+ try{const r=face.detectForVideo(dc,performance.now()).faceLandmarks[0];
+  if(r){miss=0;lm=lm&&lm.length===r.length?r.map((p,i)=>({x:lm[i].x+(p.x-lm[i].x)*.65,y:lm[i].y+(p.y-lm[i].y)*.65})):r}else if(++miss>6)lm=null}catch(_){}}
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2600)}
+async function cam(){lm=null;try{if(stream)stream.getTracks().forEach(t=>t.stop());const H=Q[qi][1];
+ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:front?'user':'environment',width:{ideal:Math.round(H*9/16)},height:{ideal:H}},audio:true});
  vid.srcObject=stream;await vid.play();size()}
  catch(e){try{stream=await navigator.mediaDevices.getUserMedia({video:true});vid.srcObject=stream;await vid.play();size()}catch(e2){toast('Camera permission chahiye')}}}
 function size(){const src=Math.max(vid.videoWidth||0,vid.videoHeight||0)||Q[qi][1],H=Math.min(Q[qi][1],src)&~1;cv.height=H;cv.width=Math.round(H*9/16)&~1}
-// ---- drawing: ek hi function main screen aur chhote circles dono ke liye ----
 function dv(c,W,H){const vw=vid.videoWidth,vh=vid.videoHeight,s=Math.max(W/vw,H/vh)*zoom,w=vw*s,h=vh*s;c.save();if(front){c.translate(W,0);c.scale(-1,1)}c.drawImage(vid,(W-w)/2,(H-h)/2,w,h);c.restore()}
 const sp=[];for(let i=0;i<40;i++)sp.push({x:Math.random(),y:Math.random(),s:Math.random()*8+3,v:Math.random()*.003+.001,p:Math.random()*6});
 function star(c,x,y,r,col){c.fillStyle=col;c.beginPath();for(let i=0;i<8;i++){const a=i*Math.PI/4,d=i%2?r*.3:r;c.lineTo(x+Math.cos(a)*d,y+Math.sin(a)*d)}c.fill()}
 function heart(c,x,y,r){c.beginPath();c.moveTo(x,y+r*.3);c.bezierCurveTo(x-r,y-r*.5,x-r*.5,y-r*1.2,x,y-r*.5);c.bezierCurveTo(x+r*.5,y-r*1.2,x+r,y-r*.5,x,y+r*.3);c.fill()}
+function rr(c,x,y,w,h,r){c.beginPath();if(c.roundRect)c.roundRect(x,y,w,h,r);else c.rect(x,y,w,h);c.fill()}
 function lens(c,k,W,H){let a=P(33,W,H),b=P(263,W,H);if(a[0]>b[0])[a,b]=[b,a];
  const d=Math.hypot(b[0]-a[0],b[1]-a[1]),g=Math.atan2(b[1]-a[1],b[0]-a[0]),m=[(a[0]+b[0])/2,(a[1]+b[1])/2],t=P(10,W,H);c.save();
- if(k==='shades'){c.translate(m[0],m[1]);c.rotate(g);c.fillStyle='rgba(15,15,20,.93)';[-1,1].forEach(s=>{c.beginPath();c.roundRect(s*d*.3-d*.25,-d*.17,d*.5,d*.36,d*.12);c.fill()});c.fillRect(-d*.08,-d*.1,d*.16,d*.06);c.fillStyle='rgba(255,255,255,.28)';[-1,1].forEach(s=>c.fillRect(s*d*.3-d*.18,-d*.11,d*.12,d*.04))}
+ if(k==='shades'){c.translate(m[0],m[1]);c.rotate(g);c.fillStyle='rgba(15,15,20,.93)';[-1,1].forEach(s=>rr(c,s*d*.3-d*.25,-d*.17,d*.5,d*.36,d*.12));c.fillRect(-d*.08,-d*.1,d*.16,d*.06);c.fillStyle='rgba(255,255,255,.28)';[-1,1].forEach(s=>c.fillRect(s*d*.3-d*.18,-d*.11,d*.12,d*.04))}
  if(k==='crown'){c.translate(t[0],t[1]);c.rotate(g);c.translate(0,-d*.02);const w=d*.8,h=d*.7;c.fillStyle='#ffcf33';c.strokeStyle='#b8860b';c.lineWidth=d*.03;c.beginPath();[[-w,0],[-w,-h*.5],[-w*.5,-h*.2],[0,-h],[w*.5,-h*.2],[w,-h*.5],[w,0]].forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();c.stroke()}
  if(k==='cat'){c.translate(t[0],t[1]);c.rotate(g);[-1,1].forEach(s=>{c.fillStyle='#2b2b2b';c.beginPath();c.moveTo(s*d*.95,d*.15);c.lineTo(s*d*.8,-d*.6);c.lineTo(s*d*.3,-d*.02);c.fill();c.fillStyle='#ff9bb5';c.beginPath();c.moveTo(s*d*.8,d*.05);c.lineTo(s*d*.74,-d*.4);c.lineTo(s*d*.42,-d*.02);c.fill()});
   c.restore();c.save();const n=P(1,W,H);c.fillStyle='#ff6f9c';c.beginPath();c.ellipse(n[0],n[1],d*.08,d*.06,g,0,7);c.fill();c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=Math.max(1,d*.015);[-1,1].forEach(s=>[-.05,0,.05].forEach(y=>{c.beginPath();c.moveTo(n[0]+s*d*.2,n[1]+d*.06+y*d);c.lineTo(n[0]+s*d*.75,n[1]+d*.06+y*d*2.6);c.stroke()}))}
  c.restore()}
+const fc=document.createElement('canvas'),fx=fc.getContext('2d');
+function smooth(c,W,H,bs,s){let bx,by,bw,bh;
+ if(lm){const a=P(234,W,H),b=P(454,W,H),t=P(10,W,H),u=P(152,W,H);bw=Math.abs(a[0]-b[0])*1.5;bh=Math.abs(t[1]-u[1])*1.5;bx=(a[0]+b[0])/2-bw/2;by=(t[1]+u[1])/2-bh/2}else{bw=W*.76;bh=H*.5;bx=W*.12;by=H*.17}
+ bx=Math.max(0,Math.floor(bx));by=Math.max(0,Math.floor(by));bw=Math.min(W-bx,Math.ceil(bw));bh=Math.min(H-by,Math.ceil(bh));if(bw<8||bh<8||!FILT)return;
+ fc.width=bw;fc.height=bh;fx.filter='blur('+7*s+'px) brightness(1.1)';fx.drawImage(c.canvas,bx,by,bw,bh,0,0,bw,bh);fx.filter='none';
+ fx.globalCompositeOperation='destination-in';fx.save();fx.translate(bw/2,bh/2);fx.scale(1,bh/bw);const g=fx.createRadialGradient(0,0,bw*.2,0,0,bw*.5);g.addColorStop(0,'#000');g.addColorStop(1,'rgba(0,0,0,0)');fx.fillStyle=g;fx.fillRect(-bw,-bw,bw*2,bw*2);fx.restore();fx.globalCompositeOperation='source-over';
+ c.save();c.globalAlpha=Math.min(.7,bs*.65);c.drawImage(fc,bx,by);c.restore()}
 function R(c,W,H,e,t){
  const s=W/720;c.fillStyle='#111';c.fillRect(0,0,W,H);if(!vid.videoWidth)return;
- c.filter=e.f||'none';dv(c,W,H);c.filter='none';
+ if(FILT)c.filter=e.f||'none';dv(c,W,H);if(FILT)c.filter='none';
  const bs=(e.b||0)+(beautyOn?beauty:0);
- if(bs>0){c.save();c.beginPath();if(lm)OV.forEach((i,k)=>{const[x,y]=P(i,W,H);k?c.lineTo(x,y):c.moveTo(x,y)});else c.ellipse(W/2,H*.42,W*.38,H*.3,0,0,7);c.closePath();c.clip();c.globalAlpha=Math.min(.75,bs*.7);c.filter='blur('+9*s+'px) brightness(1.12)';dv(c,W,H);c.restore();c.filter='none'}
+ if(bs>0)smooth(c,W,H,bs,s);
  if(e.t){c.fillStyle=e.t;c.fillRect(0,0,W,H)}
  if(e.m&&lm){const m=e.m,A=P(33,W,H),B=P(263,W,H),d=Math.hypot(A[0]-B[0],A[1]-B[1]);
   const sub=a=>{a.forEach((i,k)=>{const[x,y]=P(i,W,H);k?c.lineTo(x,y):c.moveTo(x,y)});c.closePath()};
-  if(m.e)[LE,RE].forEach(a=>{const u=a.map(i=>P(i,W,H));c.save();c.filter='blur('+d/30+'px)';c.fillStyle=m.e;c.beginPath();u.forEach(([x,y],k)=>k?c.lineTo(x,y):c.moveTo(x,y));[...u].reverse().forEach(([x,y])=>c.lineTo(x,y-d*.14));c.closePath();c.fill();c.restore()});
+  if(m.e){const T=P(10,W,H),Ch=P(152,W,H),L=Math.hypot(T[0]-Ch[0],T[1]-Ch[1])||1,ux=(T[0]-Ch[0])/L*d*.1,uy=(T[1]-Ch[1])/L*d*.1;[LE,RE].forEach(a=>{const u=a.map(i=>P(i,W,H));c.save();if(FILT)c.filter='blur('+d/35+'px)';c.fillStyle=m.e;c.beginPath();u.forEach(([x,y],k)=>k?c.lineTo(x,y):c.moveTo(x,y));[...u].reverse().forEach(([x,y])=>c.lineTo(x+ux,y+uy));c.closePath();c.fill();c.restore()})}
   if(m.b)[205,425].forEach(i=>{const[x,y]=P(i,W,H),g=c.createRadialGradient(x,y,0,x,y,d*.32);g.addColorStop(0,m.b);g.addColorStop(1,m.b.replace(/[\d.]+\)$/,'0)'));c.fillStyle=g;c.fillRect(x-d,y-d,d*2,d*2)});
-  if(m.l){c.save();c.filter='blur('+d/40+'px)';c.fillStyle=m.l;c.beginPath();sub(OL);sub(IL);c.fill('evenodd');c.restore()}}
+  if(m.l){c.save();if(FILT)c.filter='blur('+d/40+'px)';c.fillStyle=m.l;c.beginPath();sub(OL);sub(IL);c.fill('evenodd');c.restore()}}
  if(e.l&&lm)lens(c,e.l,W,H);
  const o=e.o;
  if(o==='blush'&&!lm){c.fillStyle='rgba(255,105,150,.16)';[.33,.67].forEach(x=>{c.beginPath();c.ellipse(W*x,H*.47,W*.09,H*.04,0,0,7);c.fill()})}
- if(o==='glow'){c.save();c.globalCompositeOperation='screen';c.globalAlpha=.35;c.filter='blur('+14*s+'px) brightness(1.1)';dv(c,W,H);c.restore();c.filter='none'}
+ if(o==='glow'&&FILT){c.save();c.globalCompositeOperation='screen';c.globalAlpha=.35;c.filter='blur('+14*s+'px) brightness(1.1)';dv(c,W,H);c.restore();c.filter='none'}
  if(o==='vig'||o==='bars'){const g=c.createRadialGradient(W/2,H/2,W*.35,W/2,H/2,H*.7);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.55)');c.fillStyle=g;c.fillRect(0,0,W,H)}
  if(o==='bars'){c.fillStyle='#000';c.fillRect(0,0,W,H*.1);c.fillRect(0,H*.9,W,H*.1)}
  if(o==='grain')for(let i=0;i<250;i++){c.fillStyle=`rgba(255,255,255,${Math.random()*.12})`;c.fillRect(Math.random()*W,Math.random()*H,2*s+1,2*s+1)}
@@ -138,44 +156,50 @@ function R(c,W,H,e,t){
  if(o==='glitch'&&Math.random()<.35){for(let i=0;i<3;i++){const y=Math.random()*H,h=(20+Math.random()*80)*s,d=(Math.random()-.5)*50*s;c.drawImage(c.canvas,0,y,W,h,d,y,W,h)}c.fillStyle='rgba(255,0,60,.12)';c.fillRect(0,0,W,H)}
  if(o==='spark')sp.forEach(p=>{const a=.5+.5*Math.sin(t*.004+p.p);star(c,p.x*W,((p.y-t*p.v)%1+1)%1*H,p.s*a*2*s,`rgba(255,244,170,${a})`)});
  if(o==='hearts'){c.fillStyle='rgba(255,60,120,.8)';sp.slice(0,18).forEach(p=>heart(c,p.x*W+Math.sin(t*.002+p.p)*20*s,((p.y-t*p.v*1.2)%1+1)%1*H,p.s*3*s))}}
-// ---- chhote circles: har lens ka preview aapke chehre par ----
 const oc=document.createElement('canvas');oc.width=180;oc.height=320;const octx=oc.getContext('2d');
 function thumb(k,t){R(octx,180,320,E[k.i],t);let sx,sy,sw;
  if(lm){const n=P(1,180,320),w=Math.abs(P(234,180,320)[0]-P(454,180,320)[0]);sw=Math.max(60,w*1.9);sx=n[0]-sw/2;sy=n[1]-sw/2-sw*.05}else{sw=150;sx=15;sy=320*.42-75}
  k.ctx.drawImage(oc,sx,sy,sw,sw,0,0,96,96)}
-function frame(t){
- lm=null;if(face&&vid.readyState>1){try{lm=face.detectForVideo(vid,performance.now()).faceLandmarks[0]||null}catch(_){}}
+let lastVT=-1,fn=0;
+function vis(k){const r=k.el.getBoundingClientRect();return r.right>0&&r.left<innerWidth}
+function frame(t){requestAnimationFrame(frame);
+ try{if(vid.readyState>1&&vid.currentTime!==lastVT){lastVT=vid.currentTime;detect()}
  R(ctx,cv.width,cv.height,E[cur],t);
- if(th.length){thumb(th[tk++%th.length],t);const s=th.find(k=>k.i===cur);if(s)thumb(s,t)}
- requestAnimationFrame(frame)}
-// ---- carousel aur tabs ----
+ fn++;if(th.length){if(fn%2===0){const s=th.find(k=>k.i===cur);if(s)thumb(s,t)}else for(let n=0;n<th.length;n++){const k=th[tk++%th.length];if(vis(k)){thumb(k,t);break}}}}
+ catch(err){}}
 function build(cat){car.innerHTML='';th=[];const L=cat==='All'?E.map((e,i)=>i):[0,...E.map((e,i)=>i).filter(i=>E[i].k===cat)];
- L.forEach(i=>{const d=document.createElement('div');d.className='fx';d.dataset.i=i;const c=document.createElement('canvas');c.width=c.height=96;const x=c.getContext('2d');x.fillStyle=E[i].c;x.fillRect(0,0,96,96);d.appendChild(c);car.appendChild(d);th.push({i,ctx:x});d.onclick=()=>{if(!d.classList.contains('sel'))pick(i,true)}});pick(0,true)}
+ L.forEach(i=>{const d=document.createElement('div');d.className='fx';d.dataset.i=i;const c=document.createElement('canvas');c.width=c.height=96;const x=c.getContext('2d');x.fillStyle=E[i].c;x.fillRect(0,0,96,96);d.appendChild(c);car.appendChild(d);th.push({i,ctx:x,el:d});d.onclick=()=>{if(!d.classList.contains('sel'))pick(i,true)}});pick(0,true)}
 function pick(i,scroll){cur=i;[...car.children].forEach(c=>c.classList.toggle('sel',+c.dataset.i===i));$('name').textContent=E[i].n;
  if(scroll){const c=[...car.children].find(c=>+c.dataset.i===i);if(c)car.scrollTo({left:c.offsetLeft-car.clientWidth/2+c.offsetWidth/2,behavior:'smooth'})}}
 let st;car.onscroll=()=>{clearTimeout(st);st=setTimeout(()=>{const mid=car.scrollLeft+car.clientWidth/2;let b=null,bd=1e9;[...car.children].forEach(c=>{const d=Math.abs(c.offsetLeft+c.offsetWidth/2-mid);if(d<bd){bd=d;b=c}});if(b&&+b.dataset.i!==cur)pick(+b.dataset.i,false)},80)};
 document.querySelectorAll('#tabs span').forEach(s=>s.onclick=()=>{document.querySelectorAll('#tabs span').forEach(x=>x.classList.remove('on'));s.classList.add('on');build(s.textContent)});
-// ---- shutter: tap = photo, dabaye rakho = video ----
-let hd=0,held=false;car.oncontextmenu=e=>e.preventDefault();
-car.addEventListener('pointerdown',e=>{if(!e.target.closest('.fx.sel'))return;held=false;hd=setTimeout(()=>{held=true;startRec()},450)});
-car.addEventListener('pointerup',e=>{clearTimeout(hd);if(recording){stopRec();return}if(!held&&e.target.closest('.fx.sel'))photo()});
-car.addEventListener('pointercancel',()=>{clearTimeout(hd);if(recording)stopRec()});
-async function photo(){if(timerS){const c=$('cd');c.style.display='grid';for(let i=timerS;i>0;i--){c.textContent=i;await new Promise(r=>setTimeout(r,1000))}c.style.display='none'}cv.toBlob(b=>show(b,true),'image/jpeg',.95)}
+let hd=0,held=false,vmode=false;car.oncontextmenu=e=>e.preventDefault();
+async function cd(){if(timerS){const c=$('cd');c.style.display='grid';for(let i=timerS;i>0;i--){c.textContent=i;await new Promise(r=>setTimeout(r,1000))}c.style.display='none'}}
+car.addEventListener('pointerdown',e=>{if(vmode||!e.target.closest('.fx.sel'))return;held=false;hd=setTimeout(()=>{held=true;startRec()},450)});
+car.addEventListener('pointerup',async e=>{clearTimeout(hd);if(!e.target.closest('.fx.sel'))return;if(recording){stopRec();return}if(held)return;await cd();if(vmode)startRec();else cv.toBlob(b=>show(b,true),'image/jpeg',.95)});
+car.addEventListener('pointercancel',()=>{clearTimeout(hd);if(recording&&!vmode)stopRec()});
+document.querySelectorAll('#modes span').forEach(m=>m.onclick=()=>{document.querySelectorAll('#modes span').forEach(x=>x.classList.remove('on'));m.classList.add('on');vmode=m.dataset.m==='v';document.body.classList.toggle('vm',vmode);toast(vmode?'Video: bade circle par ek tap = shuru, dobara tap = band':'Photo: tap = photo, dabaye rakho = video')});
 function startRec(){if(recording||!stream)return;const cs=cv.captureStream(30);stream.getAudioTracks().forEach(t=>cs.addTrack(t));
- const mt=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
- parts=[];rec=new MediaRecorder(cs,{mimeType:mt,videoBitsPerSecond:[6e6,12e6,35e6][qi]});rec.ondataavailable=e=>e.data.size&&parts.push(e.data);
- rec.onstop=()=>show(new Blob(parts,{type:'video/webm'}),false);rec.start(500);recording=true;document.body.classList.add('rec');
+ const mt=['video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
+ parts=[];rec=new MediaRecorder(cs,mt?{mimeType:mt,videoBitsPerSecond:[6e6,12e6,35e6][qi]}:{});rec.ondataavailable=e=>e.data.size&&parts.push(e.data);
+ rec.onstop=()=>show(new Blob(parts,{type:rec.mimeType||'video/webm'}),false);rec.start(500);recording=true;document.body.classList.add('rec');toast('Recording... band karne ke liye dobara tap');
  const t0=Date.now();rec._i=setInterval(()=>{const s=(Date.now()-t0)/1000;$('prog').style.width=Math.min(100,s/60*100)+'%';if(s>=60)stopRec()},100)}
 function stopRec(){if(!recording)return;recording=false;clearInterval(rec._i);rec.stop();document.body.classList.remove('rec');$('prog').style.width='0'}
 function show(b,photo){lastBlob=b;isPhoto=photo;const c=$('revc');c.innerHTML='';const el=document.createElement(photo?'img':'video');el.src=URL.createObjectURL(b);if(!photo){el.controls=true;el.autoplay=true;el.loop=true;el.playsInline=true}c.appendChild(el);$('rev').style.display='flex'}
+const fname=()=>'fact-tok-'+Date.now()+(isPhoto?'.jpg':lastBlob.type.includes('mp4')?'.mp4':'.webm');
 $('retake').onclick=()=>{$('rev').style.display='none';$('revc').innerHTML=''};
-$('save').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(lastBlob);a.download=isPhoto?'fact-tok.jpg':'fact-tok.webm';a.click()};
-// ---- side buttons ----
+$('save').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(lastBlob);a.download=fname();a.click()};
+// ---- upload: UPLOAD_URL ho to server par, warna phone ka Share menu ----
+$('up').onclick=async()=>{const f=new File([lastBlob],fname(),{type:lastBlob.type});
+ if(UPLOAD_URL){try{toast('Upload ho raha hai...');const fd=new FormData();fd.append('file',f);const r=await fetch(UPLOAD_URL,{method:'POST',body:fd});if(!r.ok)throw 0;toast('Upload ho gaya ✅')}catch(e){toast('Upload fail hua, dobara try karein')}return}
+ if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]})}catch(e){}return}
+ toast('Upload link set nahi hai, pehle Save karein')};
 $('flip').onclick=()=>{front=!front;cam()};
 $('flash').onclick=async()=>{try{flashOn=!flashOn;await stream.getVideoTracks()[0].applyConstraints({advanced:[{torch:flashOn}]});toast(flashOn?'Flash on':'Flash off')}catch(e){flashOn=false;toast('Is camera mein flash nahi hai')}};
 $('timer').onclick=()=>{timerS=timerS===0?3:timerS===3?10:0;toast('Timer: '+(timerS?timerS+'s':'Off'))};
 $('beauty').onclick=()=>{beautyOn=!beautyOn;toast(beautyOn?'Beauty on':'Beauty off')};
 $('zoom').onclick=()=>{zoom=zoom===1?1.5:zoom===1.5?2:1;$('zoom').textContent=zoom+'x'};
 $('qual').onclick=()=>{qi=(qi+1)%3;$('qual').textContent=Q[qi][0];cam()};
+if(!FILT)setTimeout(()=>toast('Is browser mein color filters support nahi, Chrome use karein'),1500);
 build('All');cam();initFace();requestAnimationFrame(frame);
 </script></body></html>
