@@ -162,6 +162,110 @@ var MORE='('+function(){
   if(document.body)startObs();else document.addEventListener('DOMContentLoaded',startObs);
 }.toString()+')();';
 
+/* ===== NEW ADD-ON 2: Following/Followers/Friends list, Total likes, Send-to share sheet (sab try/catch me, error nahi dega) ===== */
+var SOCIAL='('+function(){
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return '&#'+c.charCodeAt(0)+';'})}
+  function J(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+  function users(){var u=J('facttok_users');if(!u)return [];return Array.isArray(u)?u:Object.keys(u).map(function(k){var x=u[k];if(x&&typeof x==='object'&&!x.email&&!x.id)x.id=k;return x})}
+  function kid(u){return u&&(u.email||u.id||u.username||u.name)}
+  function ky(z){return z&&z.email||z}
+  function me(){
+    var c=window.currentUser||window.me||window.CURRENT_USER||window.user,ks=['facttok_me','facttok_current','facttok_user','facttok_session','facttok_login'];
+    for(var i=0;i<ks.length&&!c;i++)c=J(ks[i])||localStorage.getItem(ks[i]);
+    if(typeof c==='string')c={email:c};
+    if(c){var f=users().filter(function(u){return kid(u)===kid(c)})[0];if(f)c=f}
+    return c||{};
+  }
+  function find(x){if(x&&typeof x==='object')return x;var f=users().filter(function(u){return kid(u)===x||u.username===x})[0];return f||{name:String(x)}}
+  function lst(m,t){
+    var a=m[t];
+    if(!Array.isArray(a)){
+      if(t==='followers')a=users().filter(function(u){return (u.following||[]).some(function(z){return ky(z)===kid(m)})});
+      else if(t==='friends'){var fl=lst(m,'followers').map(kid);a=(m.following||[]).filter(function(z){return fl.indexOf(ky(z))>-1})}
+      else a=[];
+    }
+    return a.map(find);
+  }
+  function av(u,s){var im=u.avatar||u.photo||u.dp||u.pic;return '<div style="width:'+s+'px;height:'+s+'px;border-radius:50%;flex:none;background:#7b3fe4 '+(im?'url('+esc(im)+') center/cover':'')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:'+(s*.4)+'px">'+(im?'':esc(String(u.name||u.username||'?').charAt(0).toUpperCase()))+'</div>'}
+  function tz(m){if(typeof window.toast==='function')window.toast(m);else alert(m)}
+  function cp(){var l=location.href;if(navigator.clipboard)navigator.clipboard.writeText(l).then(function(){tz('Link copy ho gaya')},function(){prompt('Link:',l)});else prompt('Link:',l)}
+
+  var st=document.createElement('style');
+  st.textContent='#ftX{position:fixed;inset:0;z-index:99990;background:#fff;color:#111;font-family:sans-serif;display:flex;flex-direction:column}#ftX .h{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-weight:700;font-size:18px}#ftX .t{display:flex;border-bottom:1px solid #ddd}#ftX .t div{flex:1;text-align:center;padding:12px 4px;color:#888;font-weight:600;font-size:14px}#ftX .t .on{color:#111;border-bottom:2px solid #111}#ftX input{margin:10px 16px;padding:12px 14px;border:0;border-radius:10px;background:#f1f1f2;font-size:15px}#ftX .l{flex:1;overflow:auto}#ftX .r{display:flex;align-items:center;gap:12px;padding:9px 16px}#ftX .n{flex:1;min-width:0}#ftX .n b,#ftX .n small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ftX .n small{color:#777}#ftX .b{border:0;border-radius:8px;padding:9px 16px;font-weight:700;background:#efefef;color:#111}#ftX .b.p{background:#fe2c55;color:#fff}';
+  document.head.appendChild(st);
+
+  function toggle(m,k){
+    var a=Array.isArray(m.following)?m.following:(m.following=[]),i=a.map(ky).indexOf(k);
+    if(i>-1)a.splice(i,1);else a.push(k);
+    try{var raw=J('facttok_users');if(Array.isArray(raw)){raw.forEach(function(u){if(kid(u)===kid(m))u.following=a});localStorage.setItem('facttok_users',JSON.stringify(raw))}}catch(e){}
+  }
+  function openList(tab){
+    var m=me(),old=document.getElementById('ftX');if(old)old.remove();
+    var el=document.createElement('div');el.id='ftX';document.body.appendChild(el);
+    var T=['following','followers','friends'],q='';
+    function draw(){
+      var fo=lst(m,'following').map(kid),fl=lst(m,'followers').map(kid);
+      var h='<div class="h"><span id="ftXb" style="font-size:24px">←</span><span>'+esc(m.username||m.name||'Profile')+'</span><span style="width:24px"></span></div><div class="t">';
+      T.forEach(function(t){h+='<div data-t="'+t+'" class="'+(t===tab?'on':'')+'">'+t.charAt(0).toUpperCase()+t.slice(1)+' '+lst(m,t).length+'</div>'});
+      h+='</div><input id="ftXq" placeholder="Search" value="'+esc(q)+'"><div class="l">';
+      var a=lst(m,tab).filter(function(u){return (String(u.name||'')+' '+String(u.username||'')).toLowerCase().indexOf(q.toLowerCase())>-1});
+      if(!a.length)h+='<p style="text-align:center;color:#888;padding:40px">Abhi koi nahi</p>';
+      a.forEach(function(u){
+        var f=fo.indexOf(kid(u))>-1,fr=f&&fl.indexOf(kid(u))>-1;
+        h+='<div class="r">'+av(u,52)+'<div class="n"><b>'+esc(u.name||u.username||'User')+'</b><small>'+(u.username?'@'+esc(u.username):'')+'</small></div><button class="b'+(f?'':' p')+'" data-k="'+esc(kid(u))+'">'+(fr?'Friends':f?'Following':tab==='followers'?'Follow back':'Follow')+'</button></div>';
+      });
+      el.innerHTML=h+'</div>';
+      el.querySelector('#ftXb').onclick=function(){el.remove()};
+      [].forEach.call(el.querySelectorAll('.t div'),function(d){d.onclick=function(){tab=d.getAttribute('data-t');draw()}});
+      var qi=el.querySelector('#ftXq');
+      qi.oninput=function(){q=qi.value;var p=qi.selectionStart;draw();var n=el.querySelector('#ftXq');n.focus();n.setSelectionRange(p,p)};
+      [].forEach.call(el.querySelectorAll('.b'),function(b){b.onclick=function(){toggle(m,b.getAttribute('data-k'));draw()}});
+    }
+    draw();
+  }
+  function likes(n){
+    var d=document.createElement('div'),u=me();
+    d.style.cssText='position:fixed;inset:0;z-index:99995;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center';
+    d.innerHTML='<div style="width:78%;background:#fff;color:#111;border-radius:20px;text-align:center;overflow:hidden;font-family:sans-serif"><div style="font-size:56px;padding-top:22px">❤️</div><h2>Total likes</h2><p style="padding:0 20px 20px;color:#666">'+esc(u.username||u.name||'User')+' received a total of '+esc(n)+' likes across all videos</p><div style="border-top:1px solid #ddd;padding:16px;font-weight:700">OK</div></div>';
+    d.onclick=function(){d.remove()};document.body.appendChild(d);
+  }
+  /* profile par 204 Following / 1,052 Followers / 14.8K Likes dabane par */
+  document.addEventListener('click',function(e){
+    try{
+      var n=e.target,i=0;if(!n.closest||n.closest('#ftX'))return;
+      while(n&&n!==document.body&&i<3){
+        var s=(n.textContent||'').trim(),r=/^([\d.,]+\s?[KMkm]?)\s*(Following|Followers|Likes)$/i.exec(s);
+        if(r&&s.length<24){e.stopPropagation();e.preventDefault();var w=r[2].toLowerCase();if(w==='likes')likes(r[1]);else openList(w);return}
+        n=n.parentElement;i++;
+      }
+    }catch(x){}
+  },true);
+
+  /* share menu me "Send to" (users ki row) + extra options (Copy link, Telegram, SMS, Email, More) */
+  function share(){
+    var all=document.querySelectorAll('div,span,p,button,li,a,b'),w=null,sh=null;
+    for(var i=0;i<all.length&&!sh;i++){
+      var e=all[i];
+      if(e.children.length||e.getAttribute('data-ftx')||(e.textContent||'').trim().toLowerCase()!=='whatsapp')continue;
+      e.setAttribute('data-ftx','1');
+      var p=e;for(var j=0;j<7&&p.parentElement&&p.parentElement!==document.body;j++){p=p.parentElement;if(/report/i.test(p.textContent||''))break}
+      if(/report/i.test(p.textContent||'')&&!p.querySelector('[data-ftsend]')&&!p.closest('#ftX'))sh=p;
+    }
+    if(!sh)return;
+    var us=users().slice(0,12),h=document.createElement('div'),L=encodeURIComponent(location.href);
+    h.setAttribute('data-ftsend','1');h.style.cssText='padding:10px 14px;border-bottom:1px solid #8884';
+    h.innerHTML='<div style="text-align:center;font-weight:700;font-size:18px;padding:4px">Send to</div><div style="display:flex;gap:14px;overflow-x:auto;padding:10px 0">'+us.map(function(u,k){return '<div data-u="'+k+'" style="text-align:center;min-width:64px;font-size:12px">'+av(u,52)+'<div style="margin-top:4px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(u.name||u.username||'User')+'</div></div>'}).join('')+'</div>';
+    [].forEach.call(h.querySelectorAll('[data-u]'),function(d){d.onclick=function(){var u=us[+d.getAttribute('data-u')];if(typeof window.ftSendDM==='function')window.ftSendDM(u,location.href);else{cp();tz('Link copy kar ke '+(u.name||'user')+' ko bhej do')}}});
+    sh.insertBefore(h,sh.firstChild);
+    var ex=[['🔗','Copy link',cp],['✈️','Telegram',function(){window.open('https://t.me/share/url?url='+L)}],['💬','SMS',function(){location.href='sms:?body='+L}],['✉️','Email',function(){location.href='mailto:?body='+L}],['⋯','More',function(){if(navigator.share)navigator.share({url:location.href}).catch(function(){});else cp()}]];
+    var row=document.createElement('div');row.style.cssText='display:flex;gap:14px;overflow-x:auto;padding:12px 14px';
+    ex.forEach(function(o){var b=document.createElement('div');b.style.cssText='text-align:center;min-width:64px;font-size:12px';b.innerHTML='<div style="width:52px;height:52px;border-radius:50%;background:#8883;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 4px">'+o[0]+'</div>'+o[1];b.onclick=o[2];row.appendChild(b)});
+    sh.appendChild(row);
+  }
+  var pend=0;
+  try{new MutationObserver(function(){if(pend)return;pend=1;setTimeout(function(){pend=0;try{share()}catch(e){}},200)}).observe(document.body,{childList:true,subtree:true})}catch(e){}
+}.toString()+')();';
+
 /* ===== LOADER: app.html ko load karke page me lagata hai ===== */
 if(location.protocol==='file:'){
   document.body.innerHTML='<p style="padding:20px">Ye file seedha phone se mat kholo. Isay GitHub Pages / hosting link se kholo, warna login nahi chalega.</p>';
@@ -175,7 +279,7 @@ fetch('app.html',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.
 
   /* ft-extra.js + ft-ui.js + ft-withdraw.js + camera (cloud se pehle). ?v=2 = purani cache se bachne ke liye */
   var EXTRA='<script>'+ERRBOX+'<\/script><script src="ft-extra.js?v=2"><\/script><script src="ft-ui.js?v=2"><\/script><script src="ft-withdraw.js?v=5"><\/script><script>(function(){function c(){var a=document.getElementById("ftCamFrame");if(a)a.remove();var b=document.getElementById("ftCamX");if(b)b.remove()}function o(){c();var f=document.createElement("iframe");f.id="ftCamFrame";f.src="ft-camera.html";f.allow="camera;microphone;autoplay";f.style.cssText="position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9999;background:#000";document.body.appendChild(f);var x=document.createElement("button");x.id="ftCamX";x.textContent="✕";x.style.cssText="position:fixed;top:12px;right:12px;z-index:10000;width:38px;height:38px;border:0;border-radius:50%;background:#000a;color:#fff;font-size:16px";x.onclick=c;document.body.appendChild(x)}window.openUpload=window.openCamera=o;window.ftCloseCam=c;addEventListener("message",function(e){if(e.data==="ftclose")c()})})();<\/script>';
-  var TAIL=EXTRA+'<script>'+MORE+'<\/script><script type="module" src="facttok-cloud.js?v=2"><\/script>';
+  var TAIL=EXTRA+'<script>'+MORE+'<\/script><script>'+SOCIAL+'<\/script><script type="module" src="facttok-cloud.js?v=2"><\/script>';
   if(h.indexOf('</body>')>-1)h=h.replace('</body>',function(){return TAIL+'</body>'});
   else h=h+TAIL; /* agar app.html me </body> na ho to bhi scripts lagengi */
   document.open();document.write(h);document.close();
