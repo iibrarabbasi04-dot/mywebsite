@@ -124,4 +124,365 @@ nav .plus{background:linear-gradient(90deg,#25f4ee 30%,#fe2c55 70%);color:#000;f
 <div class="row"><button onclick="showTags()"># Hashtags</button><button onclick="showMen()">@ Mention</button></div><div id="poSug" class="fstrip" style="flex-wrap:wrap"></div>
 <input id="poLoc" placeholder="📍 Add location"><div class="fstrip"><button onclick="setLoc('Lahore')">📍 Lahore</button><button onclick="setLoc('Karachi')">📍 Karachi</button><button onclick="setLoc('Islamabad')">📍 Islamabad</button><button onclick="setLoc('Dubai')">📍 Dubai</button></div>
 <label class="m">Who can watch this video</label><select id="poVis"><option value="all">Everyone</option><option value="me">Only me</option></select>
-<label style="display:block;margin:8px 0"><input type="checkbox" id="poCm" checked style="width:auto"> Allow comments</label><label style="display:block;margin:8px 0"><input type="checkbox" id
+<label style="display:block;margin:8px 0"><input type="checkbox" id="poCm" checked style="width:auto"> Allow comments</label><label style="display:block;margin:8px 0"><input type="checkbox" id="poDl" checked style="width:auto"> Allow downloads</label>
+<div class="row" style="margin-top:12px"><button onclick="saveDraft()">📝 Drafts</button><button class="pri" style="margin:0" onclick="postFinal()">Post</button></div></div></div>
+
+<div class="scr" id="liveScreen"><div class="stage"><video id="liveV" autoplay playsinline muted></video></div>
+<div class="bar"><span style="background:#fe2c55;border-radius:6px;padding:6px 10px;font-weight:800">LIVE <span id="liveT">0:00</span></span><span style="background:#0008;padding:6px 10px;border-radius:20px">👁 <span id="liveViews">0</span></span><button onclick="endLive()">✕</button></div>
+<div id="liveChat" style="position:absolute;left:12px;right:12px;bottom:74px;max-height:35%;overflow:auto;text-shadow:0 1px 3px #000"></div>
+<div class="row" style="position:absolute;left:12px;right:12px;bottom:14px"><input id="liveIn" placeholder="Say something..." style="flex:4"><button class="pri" style="margin:5px 0" onclick="liveSend()">Send</button></div></div>
+<div class="modal" id="draftModal"><div class="sheet"><h3>Drafts<button onclick="closeM('draftModal')">✕</button></h3><div id="draftList"></div></div></div>
+<div id="toast"></div>
+
+
+<script>
+const FACTTOK_CONFIG={appName:"FACT TOK",logoText:"FT",adminGmail:"iibrarabbasi04@gmail.com",hideAdminGmailFromUsers:true,
+countryCodes:["+92 Pakistan","+91 India","+971 UAE","+966 Saudi Arabia","+44 UK","+1 USA","+86 China","+81 Japan","+90 Turkey","+49 Germany","+33 France","+61 Australia","+880 Bangladesh","+94 Sri Lanka","+977 Nepal","+98 Iran","+60 Malaysia","+62 Indonesia","+27 South Africa","+55 Brazil"],
+blueTickRule:{followers:1000000,likes:1000000},coinSymbol:"FT",
+coinPackages:[{coins:100,price:100},{coins:500,price:450},{coins:1000,price:850},{coins:5000,price:4000},{coins:10000,price:7500}],
+easypaisaInfo:"Easypaisa: 03279128541 - Name: Ibrar Abbasi",jazzCashInfo:"JazzCash: 03279128541 - Name: Ibrar Abbasi"};
+const CONFIG=FACTTOK_CONFIG,$=id=>document.getElementById(id);
+const ld=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('Storage full - use a shorter video or a URL');return false}};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let users=ld('facttok_users',[]),currentUser=null,videos=[],otpCode='',tempUser=null,selId=null,tab='foryou',taps=[],viewing=null,admTab='orders';
+const getU=e=>users.find(u=>u.email===e);
+const vid=id=>videos.find(v=>v.id==id);
+function saveAll(){sv('facttok_users',users);sv('facttok_videos',videos);if(currentUser)sv('facttok_current_user',currentUser)}
+function toast(m){const t=$('toast');t.innerText=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2200)}
+window.openM=id=>$(id).classList.add('on');window.closeM=id=>$(id).classList.remove('on');
+const mail=(s,b)=>{const a=document.createElement('a');a.href='mailto:'+CONFIG.adminGmail+'?subject='+encodeURIComponent(s)+'&body='+encodeURIComponent(b);document.body.appendChild(a);a.click();a.remove()};
+const totalLikes=u=>videos.filter(v=>v.owner===u.email).reduce((a,v)=>a+v.likes,0);
+const verified=u=>u.verified||(u.followers>=CONFIG.blueTickRule.followers&&totalLikes(u)>=CONFIG.blueTickRule.likes);
+const tick=u=>verified(u)?' <span title="Verified" style="color:#20d5ec">✅</span>':'';
+const maskPhone=u=>u.phone?u.cc+' '+u.phone.slice(0,3)+'••••'+u.phone.slice(-2):'';
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':n;
+const dpHTML=(u,s)=>u.dp?`<img class="dp" src="${esc(u.dp)}" alt="">`:`<div class="dp" style="font-size:${s/3}px">FT</div>`;
+
+/* ---------- AUTH ---------- */
+window.showMain=t=>{$('pLi').hidden=t!=='li';$('pSu').hidden=t!=='su';$('tLi').classList.toggle('on',t==='li');$('tSu').classList.toggle('on',t==='su');$('otpArea').style.display='none'};
+window.showLi=m=>{$('liP').hidden=m!=='p';$('liG').hidden=m!=='g';$('liBp').classList.toggle('on',m==='p');$('liBg').classList.toggle('on',m==='g')};
+window.showSu=m=>{$('suP').hidden=m!=='p';$('suG').hidden=m!=='g';$('suBp').classList.toggle('on',m==='p');$('suBg').classList.toggle('on',m==='g')};
+function normU(u){const A=['followingList','saved','reposts','inbox'];A.forEach(k=>{if(!Array.isArray(u[k]))u[k]=[]});['followers','coins'].forEach(k=>{u[k]=+u[k]||0});['name','username','bio','dp','phone','cc'].forEach(k=>{if(typeof u[k]!=='string')u[k]=u[k]==null?'':String(u[k])});if(u.allowDownload===undefined)u.allowDownload=true;u.private=!!u.private;u.banned=!!u.banned;if(!u.id)u.id=Date.now()+Math.floor(Math.random()*999);if(!u.username)u.username=(u.name||'user').toLowerCase().replace(/[^a-z0-9]/g,'')+Math.floor(100+Math.random()*900);return u}
+function normV(v){if(!Array.isArray(v.likedBy))v.likedBy=[];if(!Array.isArray(v.comments))v.comments=[];v.likes=+v.likes||0;['caption','tags','loc','src'].forEach(k=>{if(typeof v[k]!=='string')v[k]=v[k]==null?'':String(v[k])});return v}
+function startOtp(u,msg){otpCode=Math.floor(100000+Math.random()*900000).toString();tempUser=u;$('otpMsg').innerText=msg+' - Code: '+otpCode;$('otpArea').style.display='block';$('otpInput').value=otpCode;toast('OTP ready - tap Verify');try{$('otpArea').scrollIntoView({block:'center'})}catch(e){}alert('FACT TOK OTP is '+otpCode+' ('+msg+')')}
+function mk(name,email,phone,cc,pass){return{id:Date.now()+Math.floor(Math.random()*999),name,username:name.toLowerCase().replace(/[^a-z0-9]/g,'')+Math.floor(100+Math.random()*900),email,phone,cc,pass,bio:'',dp:'',followers:0,followingList:[],saved:[],reposts:[],inbox:[],coins:0,private:false,allowDownload:true,banned:false,isNew:true}}
+function signup(name,email,phone,cc,p1,p2,msg){
+ if(!name.trim())return alert('Enter your name');if(p1.length<6)return alert('Password must be 6+ characters');if(p1!==p2)return alert('Passwords do not match');
+ if(users.some(u=>(email&&u.email===email)||(phone&&u.phone===phone&&u.cc===cc)))return alert('Account already exists. Please log in.');
+ startOtp(mk(name.trim(),email||(cc+phone+'@phone.facttok'),phone,cc,p1),msg)}
+window.signupPhone=()=>{const ph=$('suPhone').value.replace(/\D/g,'');if(ph.length<7)return alert('Enter a valid phone number');signup($('suNameP').value,'',ph,$('suCC').value,$('suPassP').value,$('suCPassP').value,'SMS to '+$('suCC').value+' '+ph)};
+window.signupGmail=()=>{const e=$('suEmailG').value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(e))return alert('Enter a valid Gmail');signup($('suNameG').value,e,'','',$('suPassG').value,$('suCPassG').value,'Gmail to '+e)};
+function login(u,msg){if(!u)return alert('Wrong details');if(u.banned)return alert('This account is banned');u.isNew=false;startOtp(u,msg)}
+window.loginPhone=()=>{const cc=$('liCC').value,ph=$('liPhone').value.replace(/\D/g,'');login(users.find(u=>u.phone===ph&&u.cc===cc&&u.pass===$('liPassP').value),'SMS via SIM to '+cc+' '+ph)};
+window.loginGmail=()=>{const e=$('liEmail').value.trim().toLowerCase();login(users.find(u=>u.email===e&&u.pass===$('liPassG').value),'Gmail to '+e)};
+window.resendOtp=()=>{if(tempUser)startOtp(tempUser,'Resent')};
+window.verifyOtp=()=>{if($('otpInput').value!==otpCode)return alert('Wrong OTP');
+ const isNew=tempUser.isNew;delete tempUser.isNew;normU(tempUser);users=users.filter(u=>u.id!==tempUser.id&&u.email!==tempUser.email);users.push(tempUser);currentUser=tempUser;saveAll();
+ try{enterApp()}catch(e){console.error(e);alert('Account created, but the feed failed to load: '+e.message)}
+ if(isNew){const b='Name: '+currentUser.name+'\nUsername: @'+currentUser.username+'\nEmail: '+currentUser.email+'\nPhone: '+currentUser.cc+' '+currentUser.phone;console.log('NEW USER REGISTERED',b);setTimeout(()=>{try{mail('NEW USER REGISTERED',b)}catch(e){}},500)}};
+window.logout=()=>{localStorage.removeItem('facttok_current_user');location.reload()};
+function enterApp(){$('authBox').hidden=true;$('appBox').hidden=false;document.querySelectorAll('.modal').forEach(m=>m.classList.remove('on'));updCoins();renderFeed()}
+const updCoins=()=>$('coinCount').innerText=fmt(currentUser.coins||0);
+
+/* ---------- FEED ---------- */
+window.setTab=t=>{tab=t;document.querySelectorAll('#topTabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));renderFeed();$('feed').scrollTop=0};
+window.renderFeed=function(){
+ const q=$('search').value.toLowerCase().trim();
+ let list=videos.filter(v=>{const o=getU(v.owner)||{};if(v.vis==='me'&&v.owner!==currentUser.email)return false;
+  if(tab==='following'&&!currentUser.followingList.includes(v.owner))return false;
+  if(tab==='community'&&!/#community/i.test(v.tags))return false;
+  if(tab==='stem'&&!/#stem/i.test(v.tags))return false;
+  if(o.private&&o.email!==currentUser.email&&!currentUser.followingList.includes(o.email))return false;
+  return !q||(v.caption+v.tags+(o.name||'')+(o.username||'')).toLowerCase().includes(q)});
+ $('feed').innerHTML=list.length?list.map(reelHTML).join(''):'<p class="m" style="padding:40px;text-align:center">Nothing here yet. Follow creators or post your first video.</p>';
+ observe()};
+function reelHTML(v){const o=getU(v.owner)||{name:'User',username:'user',followers:0,followingList:[]};
+ const f=currentUser.followingList.includes(v.owner),me=v.owner===currentUser.email,liked=v.likedBy.includes(currentUser.email),sv_=currentUser.saved.includes(v.id);
+ return `<div class="reel" ondblclick="likeVideo(${v.id})" style="background:${v.bg||'#111'}">
+ ${(v.src||v.blobId)?`<video class="${effCls(v.fx)}" ${v.src?`src="${esc(v.src)}"`:''} data-b="${v.blobId||''}" data-i="${v.id}" loop playsinline onclick="this.paused?this.play():this.pause()" style="filter:${fxCSS(v.fx)}"></video>`:`<div class="fact">${esc(v.caption)}</div>`}${ovHTML(v.fx)}
+ <div class="side"><div class="avatar" onclick="showUser('${esc(v.owner)}')">${dpHTML(o,48)}${me?'':`<div class="followBtn" onclick="event.stopPropagation();followUser('${esc(v.owner)}')">${f?'✓':'+'}</div>`}</div>
+ <button id="likeBtn${v.id}" onclick="likeVideo(${v.id})">${liked?'❤️':'🤍'}<small>${fmt(v.likes)}</small></button>
+ <button onclick="openComments(${v.id})">💬<small>${v.comments.length}</small></button>
+ <button onclick="saveVideo(${v.id})">${sv_?'🔖':'📑'}<small>Save</small></button>
+ <button onclick="openShare(${v.id})">↗️<small>Share</small></button></div>
+ <div class="cap"><b>@${esc(o.username)}</b>${tick(o)} <span class="m">${esc(maskPhone(o))}</span><div>${esc(v.caption)}</div><div class="tag">${esc(v.tags)}</div>${v.loc?`<div>📍 ${esc(v.loc)}</div>`:''}</div>
+ <div class="watermark"><div class="ft-coin ft">FT</div> FACT TOK @facttok.official</div></div>`}
+function observe(){hydrate();const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target.querySelector('video');if(!v)return;if(e.isIntersecting)v.play().catch(()=>{v.muted=true;v.play().catch(()=>{})});else v.pause()}),{threshold:.7});document.querySelectorAll('.reel').forEach(r=>io.observe(r))}
+window.followUser=e=>{const t=getU(e);if(!t||e===currentUser.email)return;
+ if(currentUser.followingList.includes(e)){currentUser.followingList=currentUser.followingList.filter(x=>x!==e);t.followers=Math.max(0,t.followers-1);toast('Unfollowed')}
+ else{currentUser.followingList.push(e);t.followers++;toast('Followed')}
+ saveAll();renderFeed()};
+window.likeVideo=id=>{const v=vid(id),e=currentUser.email;if(v.likedBy.includes(e)){v.likedBy=v.likedBy.filter(x=>x!==e);v.likes--}else{v.likedBy.push(e);v.likes++}saveAll();const b=$('likeBtn'+id);if(b)b.innerHTML=(v.likedBy.includes(e)?'❤️':'🤍')+'<small>'+fmt(v.likes)+'</small>'};
+window.saveVideo=id=>{const s=currentUser.saved,i=s.indexOf(id);if(i>=0){s.splice(i,1);toast('Removed from saved')}else{s.push(id);toast('Saved to profile')}saveAll();renderFeed()};
+window.openComments=id=>{if(vid(id).allowComments===false)return toast('Comments are turned off');selId=id;drawComments();openM('commentModal')};
+function drawComments(){const v=vid(selId);$('cmTitle').innerText=v.comments.length+' comments';$('cmList').innerHTML=v.comments.map(c=>`<div class="cm"><b>@${esc(c.u)}</b> ${esc(c.t)}</div>`).join('')||'<p class="m">Be the first to comment.</p>'}
+window.postComment=()=>{const t=$('cmInput').value.trim();if(!t)return;vid(selId).comments.push({u:currentUser.username,t});$('cmInput').value='';saveAll();drawComments();renderFeed()};
+
+/* ---------- SHARE ---------- */
+window.openShare=id=>{selId=id;openM('shareModal')};
+window.openReportModal=()=>{closeM('shareModal');openM('reportModal')};
+window.submitReport=()=>{const r={id:Date.now(),videoId:selId,reason:$('rpReason').value,desc:$('rpDesc').value,by:currentUser.email,date:new Date().toISOString()};const a=ld('facttok_reports',[]);a.push(r);sv('facttok_reports',a);
+ mail('VIDEO REPORT '+selId,'Reason: '+r.reason+'\nDetails: '+r.desc+'\nReported by: '+r.by+'\nVideo: '+selId);$('rpDesc').value='';closeM('reportModal');toast('Report sent to admin')};
+window.repostVideo=()=>{if(!currentUser.reposts.includes(selId))currentUser.reposts.push(selId);saveAll();closeM('shareModal');toast('Reposted to your profile')};
+window.downloadVideo=()=>{const v=vid(selId),o=getU(v.owner);if(v.allowDownload===false||(o&&o.allowDownload===false))return toast('Download is turned off for this video');
+ if(v.blobId||v.src){closeM('shareModal');return burnDL(v)}const a=document.createElement('a');if(v.src){a.href=v.src;a.target='_blank'}else{a.href=URL.createObjectURL(new Blob([v.caption+'\n\nFACT TOK @facttok.official'],{type:'text/plain'}))}
+ a.download='facttok-'+v.id;document.body.appendChild(a);a.click();a.remove();alert('Watermark FACT TOK @facttok.official added');closeM('shareModal')};
+window.shareTo=k=>{const u='https://facttok.com/reel/'+selId,e=encodeURIComponent(u);
+ if(k==='wa')window.open('https://wa.me/?text='+e);else if(k==='tw')window.open('https://twitter.com/intent/tweet?url='+e);else if(k==='fb')window.open('https://www.facebook.com/sharer/sharer.php?u='+e);
+ else{(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>toast('Link copied for Instagram share')).catch(()=>prompt('Copy this link',u))}};
+
+/* ---------- PROFILE ---------- */
+window.showUser=function(email){const u=getU(email||currentUser.email);if(!u)return;viewing=u;const me=u.email===currentUser.email;
+ $('dotsBtn').hidden=!me;const locked=u.private&&!me&&!currentUser.followingList.includes(u.email);
+ const mine=videos.filter(v=>v.owner===u.email);
+ $('profBody').innerHTML=`<div style="text-align:center"><div style="width:80px;height:80px;margin:auto">${dpHTML(u,80)}</div><h3 style="justify-content:center;margin-top:8px">${esc(u.name)}${tick(u)}</h3><p class="m">@${esc(u.username)}</p><p>${esc(u.bio)}</p></div>
+ ${me?`<div class="row" style="margin-top:10px"><button id="editProfileBtn" onclick="openEditProfile()">Edit profile</button><button onclick="openEditBio()">Edit description</button></div>`:`<button class="pri" onclick="followUser('${esc(u.email)}');showUser('${esc(u.email)}')">${currentUser.followingList.includes(u.email)?'Following ✓':'Follow'}</button>`}
+ <div class="row stat"><div><b>${u.followingList.length}</b>Following</div><div><b>${fmt(u.followers)}</b>Followers</div><div><b>${fmt(totalLikes(u))}</b>Likes</div></div>
+ ${locked?'<p class="m" style="text-align:center">🔒 This account is private. Follow to see videos.</p>':`<div class="row" style="margin-bottom:8px"><button onclick="profTab('v')">Videos</button>${me?'<button onclick="profTab(\'r\')">Reposts</button><button onclick="profTab(\'s\')">Saved</button>':''}</div><div class="grid" id="profGrid"></div>`}`;
+ if(!locked)window.profTab('v');openM('profileModal')};
+window.profTab=t=>{const u=viewing,ids=t==='v'?videos.filter(v=>v.owner===u.email).map(v=>v.id):t==='r'?u.reposts:u.saved;
+ $('profGrid').innerHTML=ids.map(vid).filter(Boolean).map(v=>`<div>${esc(v.caption)}<br>❤️ ${fmt(v.likes)}</div>`).join('')||'<p class="m">Nothing yet</p>'};
+window.openEditProfile=()=>{$('epName').value=currentUser.name;$('epBio').value=currentUser.bio;tmpDp=null;$('epPrev').innerHTML=dpHTML(currentUser,96);openM('editProfileModal')};
+window.saveProfile=()=>{const n=$('epName').value.trim();if(!n)return toast('Name is required');Object.assign(currentUser,{name:n,bio:$('epBio').value,dp:tmpDp||currentUser.dp});saveAll();closeM('editProfileModal');showUser();renderFeed();toast('Profile updated')};
+window.openEditBio=()=>{$('ebText').value=currentUser.bio;openM('editBioModal')};
+window.saveBio=()=>{currentUser.bio=$('ebText').value;saveAll();closeM('editBioModal');showUser();toast('Description updated')};
+window.openProfileSettings=()=>{$('privateToggle').checked=!!currentUser.private;$('dlToggle').checked=currentUser.allowDownload!==false;openM('profileSettingsModal')};
+window.togglePrivate=c=>{currentUser.private=c;saveAll();toast(c?'Account is private':'Account is public')};
+window.toggleDl=c=>{currentUser.allowDownload=c;saveAll();toast(c?'Downloads allowed':'Downloads off')};
+
+/* ---------- BALANCE ---------- */
+window.openBalance=()=>{closeM('profileSettingsModal');$('balCoins').innerText=currentUser.coins||0;$('payInfo').innerHTML=esc(CONFIG.easypaisaInfo)+'<br>'+esc(CONFIG.jazzCashInfo)+'<br>Send payment, then submit your order. Coins arrive after admin approval.';calcPrice();openM('balanceModal')};
+const priceOf=n=>{const p=CONFIG.coinPackages.filter(x=>x.coins<=n).pop();return Math.round(n*(p?p.price/p.coins:1))};
+window.calcPrice=()=>$('coinPrice').innerText=priceOf(+$('coinOrderCoins').value||0);
+window.submitCoinOrder=()=>{const coins=+$('coinOrderCoins').value,name=$('coinOrderName').value.trim(),acc=$('coinAcc').value;if(!name||coins<1)return toast('Enter name and coins');
+ const o={id:Date.now(),userEmail:currentUser.email,userName:name,accountType:acc,accountNumber:acc==='Easypaisa'?CONFIG.easypaisaInfo:CONFIG.jazzCashInfo,coins,price:priceOf(coins),status:'pending',date:new Date().toISOString()};
+ const a=ld('facttok_coin_orders',[]);a.push(o);sv('facttok_coin_orders',a);
+ mail('COIN ORDER '+coins+' FROM '+o.userEmail,'Order: '+o.id+'\nName: '+name+'\nAccount: '+acc+'\nCoins: '+coins+'\nPrice: Rs '+o.price+'\nStatus: pending');
+ closeM('balanceModal');toast('Order sent to admin')};
+
+/* ---------- UPLOAD / INBOX ---------- */
+window.openUpload=()=>openM('uploadModal');
+window.postVideo=()=>{const cap=$('upCap').value.trim();if(!cap)return toast('Add a caption');
+ const done=src=>{videos.unshift({id:Date.now(),owner:currentUser.email,caption:cap,tags:$('upTags').value,loc:$('upLoc').value,src,likes:0,likedBy:[],comments:[],allowDownload:$('upDl').checked,bg:'linear-gradient(160deg,#07260f,#000)'});
+  if(!sv('facttok_videos',videos)){videos.shift();return}closeM('uploadModal');['upCap','upTags','upLoc','upUrl','upFile'].forEach(i=>$(i).value='');renderFeed();toast('Posted')};
+ const f=$('upFile').files[0];if(f){if(f.size>2.5e6)return toast('File too big for browser storage (max 2.5MB). Use a video URL.');const r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}else done($('upUrl').value.trim())};
+window.openInbox=()=>{$('inboxList').innerHTML=(currentUser.inbox||[]).slice().reverse().map(m=>`<div class="cm">${esc(m)}</div>`).join('')||'<p class="m">No messages yet.</p>';openM('inboxModal')};
+
+/* ---------- ADMIN (logo x5 in 3s, admin Gmail only) ---------- */
+window.logoTap=()=>{const n=Date.now();taps=taps.filter(t=>n-t<3000);taps.push(n);if(taps.length>=5){taps=[];if(currentUser.email===CONFIG.adminGmail){renderAdmin('orders');openM('adminModal')}else toast('Access denied')}};
+window.renderAdmin=function(t){admTab=t||admTab;let h='';
+ if(admTab==='orders')h=ld('facttok_coin_orders',[]).slice().reverse().map(o=>`<div class="adm"><b>${esc(o.userName)}</b> ${esc(o.userEmail)}<br>${o.coins} FT - Rs ${o.price} - ${esc(o.accountType)}<br>Status: ${o.status}${o.status==='pending'?`<div class="row"><button class="pri" onclick="orderAct(${o.id},'approved')">Approve</button><button onclick="orderAct(${o.id},'rejected')" style="margin-top:6px">Reject</button></div>`:''}</div>`).join('');
+ else if(admTab==='users')h=users.map(u=>`<div class="adm">${esc(u.name)} @${esc(u.username)}${tick(u)}<br>${esc(u.email)} ${u.banned?'(banned)':''}<div class="row"><button onclick="banUser('${esc(u.email)}')">${u.banned?'Unban':'Ban'}</button><button onclick="verifyUser('${esc(u.email)}')">${u.verified?'Remove tick':'Blue tick'}</button></div></div>`).join('');
+ else h=ld('facttok_reports',[]).slice().reverse().map(r=>`<div class="adm">Video ${r.videoId} - ${esc(r.reason)}<br>${esc(r.desc)}<br><span class="m">by ${esc(r.by)}</span></div>`).join('');
+ $('admBody').innerHTML=h||'<p class="m">Nothing here.</p>'};
+window.orderAct=(id,s)=>{const a=ld('facttok_coin_orders',[]),o=a.find(x=>x.id===id);if(!o)return;o.status=s;sv('facttok_coin_orders',a);const u=getU(o.userEmail);
+ if(u){if(s==='approved')u.coins=(u.coins||0)+o.coins;(u.inbox=u.inbox||[]).push('Your order of '+o.coins+' FT was '+s+'.')}
+ saveAll();if(u&&u.email===currentUser.email)updCoins();renderAdmin()};
+window.banUser=e=>{const u=getU(e);if(u&&e!==CONFIG.adminGmail){u.banned=!u.banned;saveAll();renderAdmin()}};
+window.verifyUser=e=>{const u=getU(e);if(u){u.verified=!u.verified;saveAll();renderAdmin()}};
+
+/* ---------- PROFILE PICTURE ---------- */
+let tmpDp=null;
+window.pickDp=i=>{const f=i.files[0];if(!f)return;const im=new Image(),r=new FileReader();r.onload=()=>{im.onload=()=>{const c=document.createElement('canvas'),m=Math.min(im.width,im.height);c.width=c.height=256;c.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,256,256);tmpDp=c.toDataURL('image/jpeg',.85);$('epPrev').innerHTML=dpHTML({dp:tmpDp},96)};im.src=r.result};r.readAsDataURL(f);i.value=''};
+
+/* ---------- STORAGE FOR VIDEO FILES ---------- */
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('facttok',1);r.onupgradeneeded=()=>r.result.createObjectStore('b');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const idbPut=(k,v)=>idb().then(d=>new Promise((res,rej)=>{const t=d.transaction('b','readwrite');t.objectStore('b').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)}));
+const idbGet=k=>idb().then(d=>new Promise((res,rej)=>{const q=d.transaction('b').objectStore('b').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}));
+
+/* ---------- 216 FILTERS + FX ---------- */
+const FN=[['Normal',''],['B&W','grayscale(1) contrast(1.1)'],['Sepia','sepia(.8)'],['Vintage','sepia(.4) contrast(1.1) saturate(.8) hue-rotate(-10deg)'],['Neon','saturate(2) contrast(1.2) hue-rotate(290deg)'],['Warm','sepia(.25) saturate(1.3) brightness(1.05)'],['Cool','hue-rotate(180deg) saturate(.9) brightness(1.05)'],['Fade','contrast(.8) brightness(1.15) saturate(.7)'],['Drama','contrast(1.4) saturate(1.2) brightness(.9)'],['Noir','grayscale(1) contrast(1.6) brightness(.85)'],['Pop','saturate(2.2) contrast(1.15)'],['Dream','brightness(1.15) saturate(1.3) blur(.5px)'],['Sunset','sepia(.5) saturate(1.8) hue-rotate(-20deg)'],['Ocean','hue-rotate(160deg) saturate(1.4)'],['Forest','hue-rotate(80deg) saturate(1.3)'],['Glow','brightness(1.2) contrast(.9) saturate(1.3)']];
+const FILTERS=FN.map(a=>({n:a[0],css:a[1]}));
+for(let i=0;FILTERS.length<216;i++)FILTERS.push({n:'FT '+(FILTERS.length+1),css:`hue-rotate(${(i*37)%360}deg) saturate(${90+(i%7)*18}%) contrast(${92+(i%5)*7}%) brightness(${92+(i%4)*6}%)${i%9===0?' grayscale(.6)':''}${i%11===0?' sepia(.5)':''}`});
+const newFx=f=>({f:f||0,adj:{br:100,co:100,sa:100,bl:0,hu:0,sep:0},eff:'',speed:1,start:0,end:0,vol:100,items:[]});
+const fxCSS=x=>{if(!x||!x.adj)return'';const a=x.adj;return((FILTERS[x.f]||{}).css||'')+` brightness(${a.br}%) contrast(${a.co}%) saturate(${a.sa}%) blur(${a.bl}px) hue-rotate(${a.hu}deg) sepia(${a.sep}%)`+(x.eff==='glow'?' drop-shadow(0 0 8px #1ed760)':'')};
+const effCls=x=>x&&['shake','pulse','mirror','flip'].includes(x.eff)?'e-'+x.eff:'';
+const ovHTML=x=>x&&x.items?x.items.map((i,n)=>`<div class="ov" data-n="${n}" style="left:${i.x}%;top:${i.y}%;color:${i.c};font-size:${i.sz}px">${esc(i.v)}</div>`).join('')+(x.eff==='vig'?'<div class="vig"></div>':''):'';
+const chips=(sel,fn)=>FILTERS.map((f,i)=>`<div class="fchip ${i==sel?'on':''}" onclick="${fn}(${i})"><i style="filter:${f.css}"></i>${f.n}</div>`).join('');
+const markOn=(q,i)=>document.querySelectorAll(q+' .fchip').forEach((c,k)=>c.classList.toggle('on',k===i));
+function hydrate(){document.querySelectorAll('video[data-i]').forEach(async el=>{if(el._h)return;el._h=1;const v=vid(el.dataset.i),x=v&&v.fx;
+ if(x){el.defaultPlaybackRate=el.playbackRate=x.speed||1;el.volume=Math.min(1,(x.vol==null?100:x.vol)/100);el.ontimeupdate=()=>{if(x.end&&el.currentTime>=x.end)el.currentTime=x.start||0}}
+ if(el.dataset.b){try{const b=await idbGet(el.dataset.b);if(b){el.onloadeddata=()=>{el.playbackRate=(x&&x.speed)||1;const r=el.getBoundingClientRect();if(r.top<innerHeight*.6&&r.bottom>innerHeight*.4)el.play().catch(()=>{el.muted=true;el.play().catch(()=>{})})};el.src=URL.createObjectURL(b)}}catch(e){}}})}
+
+/* ---------- CAMERA ---------- */
+let stream=null,facing='user',mr=null,chunks=[],recTm=null,recSec=0,camF=0,E=null;
+window.openUpload=window.openCamera=async()=>{$('camStrip').innerHTML=chips(camF,'setCamF');openM('camScreen');await startCam()};
+async function startCam(){stopCam();try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:true});$('camV').srcObject=stream;$('camV').style.filter=FILTERS[camF].css}catch(e){toast('Live camera needs https. Tap the red button to record with your phone camera')}}
+function stopCam(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null}
+window.closeCam=()=>{if(mr&&mr.state==='recording'){mr.onstop=null;mr.stop();clearInterval(recTm)}$('recBtn').classList.remove('on');$('recT').innerText='';stopCam();closeM('camScreen')};
+window.flipCam=()=>{facing=facing==='user'?'environment':'user';startCam()};
+window.setCamF=i=>{camF=i;$('camV').style.filter=FILTERS[i].css;markOn('#camStrip',i)};
+window.toggleRec=()=>{if(camMode==='live')return startLive();if(mr&&mr.state==='recording')return mr.stop();if(!stream||!window.MediaRecorder)return $('capFile').click();
+ chunks=[];recSec=0;try{mr=new MediaRecorder(stream,{videoBitsPerSecond:1500000})}catch(e){return $('capFile').click()}
+ mr.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+ mr.onstop=()=>{clearInterval(recTm);$('recBtn').classList.remove('on');$('recT').innerText='';openEditor(new Blob(chunks,{type:mr.mimeType||'video/webm'}),camF,recSec)};
+ mr.start();$('recBtn').classList.add('on');recTm=setInterval(()=>{recSec++;$('recT').innerText='● '+recSec+'s';if(recSec>=60)mr.stop()},1000)};
+window.pickVideo=i=>{const f=i.files[0];if(f)openEditor(f,camF,0);i.value=''};
+
+/* ---------- EDITOR ---------- */
+function openEditor(blob,fx,dur,cap){stopCam();closeM('camScreen');E={blob,url:URL.createObjectURL(blob),dur:dur||0,fx:typeof fx==='object'?fx:newFx(fx),cap:cap||''};
+ const v=$('edV');v.src=E.url;v.onloadedmetadata=()=>{if(isFinite(v.duration)&&v.duration>0)E.dur=v.duration;edApply();v.play().catch(()=>{});edTab('f')};
+ v.ontimeupdate=()=>{const x=E&&E.fx;if(x&&x.end&&v.currentTime>=x.end)v.currentTime=x.start||0};edApply();openM('edScreen');edTab('f')}
+function edApply(){if(!E)return;const x=E.fx,v=$('edV');v.style.filter=fxCSS(x);v.className=effCls(x);v.defaultPlaybackRate=v.playbackRate=x.speed;v.volume=Math.min(1,x.vol/100);$('edOv').innerHTML=ovHTML(x)}
+window.closeEd=()=>{try{$('edV').pause()}catch(e){}if(E)URL.revokeObjectURL(E.url);E=null;closeM('edScreen');closeM('postScreen')};
+window.edTab=t=>{if(!E)return;document.querySelectorAll('#edTools button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));const x=E.fx,a=x.adj,d=Math.max(1,Math.floor(E.dur||10));
+ const R=(l,k,mn,mx,st)=>`<label>${l}<input type="range" min="${mn}" max="${mx}" step="${st||1}" value="${a[k]}" oninput="setAdj('${k}',this.value)"></label>`;
+ $('edPanel').innerHTML=t==='f'?`<div class="fstrip">${chips(x.f,'setEdF')}</div>`:
+ t==='a'?R('Brightness','br',50,150)+R('Contrast','co',50,150)+R('Saturation','sa',0,200)+R('Blur','bl',0,6,.5)+R('Hue','hu',0,360)+R('Vintage','sep',0,100):
+ t==='e'?[['','None'],['vig','Vignette'],['mirror','Mirror'],['flip','Flip'],['shake','Shake'],['pulse','Pulse'],['glow','Glow']].map(e=>`<button class="${x.eff===e[0]?'on':''}" onclick="setEff('${e[0]}');edTab('e')">${e[1]}</button>`).join(''):
+ t==='s'?[.3,.5,1,1.5,2,3,4].map(s=>`<button class="${x.speed==s?'on':''}" onclick="setSpeed(${s})">${s}x</button>`).join(''):
+ t==='r'?`<label>Start<input type="range" min="0" max="${d}" step=".1" value="${x.start}" oninput="setTrim('start',this.value)"></label><label>End<input type="range" min="0" max="${d}" step=".1" value="${x.end||d}" oninput="setTrim('end',this.value)"></label>`:
+ t==='t'?`<div class="row"><input id="txIn" placeholder="Type text"><input id="txCol" type="color" value="#ffffff" style="flex:0 0 50px;padding:2px"><button class="pri" style="margin:5px 0" onclick="addItem('t')">Add</button></div><button onclick="undoItem()">Undo last</button><small class="m"> Drag text on the video to move it</small>`:
+ t==='k'?'😀😍🔥💚✨🎉👑💯🚀⭐😂👍'.match(/./gu).map(e=>`<button style="font-size:22px" onclick="addItem('k','${e}')">${e}</button>`).join('')+'<button onclick="undoItem()">Undo last</button>':
+ `<label>Volume<input type="range" min="0" max="100" value="${x.vol}" oninput="E.fx.vol=+this.value;edApply()"></label><button onclick="E.fx.vol=0;edApply();edTab('m')">Mute</button>`};
+window.setAdj=(k,v)=>{E.fx.adj[k]=+v;edApply()};window.setEff=e=>{E.fx.eff=e;edApply()};window.setSpeed=s=>{E.fx.speed=s;edApply();edTab('s')};
+window.setEdF=i=>{E.fx.f=i;edApply();markOn('#edPanel',i)};window.setTrim=(k,v)=>{E.fx[k]=+v;if(k==='start')$('edV').currentTime=+v};
+window.addItem=(k,e)=>{let t=e;if(k==='t'){t=$('txIn').value.trim();if(!t)return toast('Type some text')}E.fx.items.push({v:t,x:50,y:k==='t'?50:35,c:k==='t'?$('txCol').value:'#fff',sz:k==='t'?26:48});edApply()};
+window.undoItem=()=>{E.fx.items.pop();edApply()};
+let dr=null;const st=$('edStage');
+st.addEventListener('pointerdown',e=>{const o=e.target.closest('.ov');if(o){dr=+o.dataset.n;e.preventDefault()}});
+addEventListener('pointermove',e=>{if(dr==null||!E)return;const r=st.getBoundingClientRect(),i=E.fx.items[dr];if(!i)return;i.x=Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100));i.y=Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100));edApply()});
+addEventListener('pointerup',()=>dr=null);
+
+/* ---------- POST / DRAFTS ---------- */
+window.openPost=()=>{if(!E)return;$('edV').pause();const p=$('poV');p.src=E.url;p.style.filter=fxCSS(E.fx);$('poCap').value=E.cap||'';openM('postScreen')};
+window.showTags=()=>{$('poCap').value+=($('poCap').value&&!/\s$/.test($('poCap').value)?' ':'')+'#';$('poSug').innerHTML=['#facts','#stem','#community','#FT','#viral','#learn'].map(t=>`<button onclick="insTxt('${t.slice(1)} ')">${t}</button>`).join('')};
+window.showMen=()=>{$('poCap').value+=($('poCap').value&&!/\s$/.test($('poCap').value)?' ':'')+'@';$('poSug').innerHTML=users.filter(u=>u.email!==currentUser.email).slice(0,10).map(u=>`<button onclick="insTxt('${esc(u.username)} ')">@${esc(u.username)}</button>`).join('')||'<small class="m">No users to mention yet</small>'};
+window.insTxt=s=>{$('poCap').value+=s;$('poCap').focus()};window.setLoc=l=>$('poLoc').value=l;
+window.postFinal=async()=>{if(!E)return;const cap=$('poCap').value.trim(),id=Date.now(),bid='v'+id;
+ try{await idbPut(bid,E.blob)}catch(e){return toast('Could not store this video')}
+ videos.unshift({id,owner:currentUser.email,caption:cap.replace(/#\w+/g,'').replace(/\s+/g,' ').trim(),tags:(cap.match(/#\w+/g)||[]).join(' ')||'#facts',loc:$('poLoc').value.trim(),src:'',blobId:bid,fx:E.fx,vis:$('poVis').value,allowComments:$('poCm').checked,allowDownload:$('poDl').checked,likes:0,likedBy:[],comments:[],bg:'#111'});
+ saveAll();closeEd();setTab('foryou');toast('Posted')};
+window.saveDraft=async()=>{if(!E)return;const bid='d'+Date.now();try{await idbPut(bid,E.blob)}catch(e){return toast('Could not save draft')}
+ const a=ld('facttok_drafts',[]);a.push({id:Date.now(),owner:currentUser.email,blobId:bid,fx:E.fx,dur:E.dur,caption:$('poCap').value});sv('facttok_drafts',a);closeEd();toast('Saved to drafts')};
+window.openDrafts=()=>{const d=ld('facttok_drafts',[]).filter(x=>x.owner===currentUser.email);$('draftList').innerHTML=d.map(x=>`<div class="cm" onclick="loadDraft(${x.id})" style="cursor:pointer">📝 ${esc(x.caption||'Untitled draft')} <span class="m">${new Date(x.id).toLocaleDateString()}</span></div>`).join('')||'<p class="m">No drafts yet.</p>';openM('draftModal')};
+window.loadDraft=async id=>{const x=ld('facttok_drafts',[]).find(d=>d.id===id);if(!x)return;let b=null;try{b=await idbGet(x.blobId)}catch(e){}if(!b)return toast('Draft video is missing');closeM('draftModal');openEditor(b,x.fx,x.dur,x.caption)};
+
+/* ---------- WATERMARKED DOWNLOAD ---------- */
+function wmDraw(c,w,h,user,t){const k=w/360,tl=Math.floor(t/3)%2===1,x=tl?12*k:w-132*k,y=tl?12*k:h-46*k;c.save();c.globalAlpha=.9;c.fillStyle='#1ed760';c.beginPath();c.arc(x+14*k,y+14*k,14*k,0,7);c.fill();c.fillStyle='#000';c.font='800 '+11*k+'px Inter,sans-serif';c.textAlign='center';c.fillText('FT',x+14*k,y+18*k);
+ c.textAlign='left';c.fillStyle='#fff';c.shadowColor='#000';c.shadowBlur=4;c.font='800 '+12*k+'px Inter,sans-serif';c.fillText('FACT TOK',x+34*k,y+12*k);c.font='600 '+10*k+'px Inter,sans-serif';c.fillText('@'+user,x+34*k,y+26*k);c.restore()}
+async function burnDL(v){const o=getU(v.owner)||{username:'facttok.official'},x=v.fx;let b=null;toast('Adding FACT TOK watermark... please wait');
+ const plain=()=>{const a=document.createElement('a');a.href=b?URL.createObjectURL(b):v.src;a.download='facttok-'+v.id+'.webm';document.body.appendChild(a);a.click();a.remove()};
+ try{if(v.blobId)b=await idbGet(v.blobId);const el=document.createElement('video');el.playsInline=true;el.crossOrigin='anonymous';el.src=b?URL.createObjectURL(b):v.src;
+  await new Promise((res,rej)=>{el.onloadedmetadata=res;el.onerror=rej});
+  const sc=Math.min(1,720/(el.videoWidth||720)),w=Math.round(el.videoWidth*sc)||360,h=Math.round(el.videoHeight*sc)||640,cv=document.createElement('canvas');cv.width=w;cv.height=h;const c=cv.getContext('2d');
+  const ac=new (window.AudioContext||window.webkitAudioContext)(),sr=ac.createMediaElementSource(el),gn=ac.createGain(),ds=ac.createMediaStreamDestination();gn.gain.value=x&&x.vol!=null?x.vol/100:1;sr.connect(gn);gn.connect(ds);
+  const rec=new MediaRecorder(new MediaStream([...cv.captureStream(30).getVideoTracks(),...ds.stream.getAudioTracks()]),{videoBitsPerSecond:2500000}),ch=[];rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+  const t0=x&&x.start||0;el.currentTime=t0;el.defaultPlaybackRate=el.playbackRate=(x&&x.speed)||1;let endAt=0,done=false;
+  const draw=()=>{if(done)return;const t=el.currentTime;c.save();c.filter=fxCSS(x)||'none';if(x&&x.eff==='mirror'){c.translate(w,0);c.scale(-1,1)}if(x&&x.eff==='flip'){c.translate(0,h);c.scale(1,-1)}c.drawImage(el,0,0,w,h);c.restore();
+   if(x){if(x.eff==='vig'){const g=c.createRadialGradient(w/2,h/2,w*.25,w/2,h/2,h*.7);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.85)');c.fillStyle=g;c.fillRect(0,0,w,h)}
+    c.textAlign='center';c.textBaseline='middle';c.shadowColor='#000';c.shadowBlur=4;x.items.forEach(i=>{c.fillStyle=i.c;c.font='800 '+i.sz*w/360+'px Inter,sans-serif';c.fillText(i.v,i.x/100*w,i.y/100*h)});c.shadowBlur=0}
+   if(endAt){c.fillStyle='rgba(0,0,0,.55)';c.fillRect(0,0,w,h);c.fillStyle='#1ed760';c.beginPath();c.arc(w/2,h/2-30*w/360,34*w/360,0,7);c.fill();c.fillStyle='#000';c.font='800 '+26*w/360+'px Inter,sans-serif';c.textAlign='center';c.fillText('FT',w/2,h/2-30*w/360);c.fillStyle='#fff';c.font='800 '+20*w/360+'px Inter,sans-serif';c.fillText('FACT TOK',w/2,h/2+30*w/360);c.font='600 '+14*w/360+'px Inter,sans-serif';c.fillText('@facttok.official',w/2,h/2+54*w/360)}
+   else wmDraw(c,w,h,o.username,t);requestAnimationFrame(draw)};
+  const fin=()=>{if(endAt)return;endAt=1;el.pause();setTimeout(()=>{done=true;rec.stop()},1500)};
+  el.ontimeupdate=()=>{if(x&&x.end&&el.currentTime>=x.end)fin()};el.onended=fin;
+  rec.onstop=()=>{const f=new Blob(ch,{type:rec.mimeType||'video/webm'}),a=document.createElement('a');a.href=URL.createObjectURL(f);a.download='facttok-'+v.id+'.'+(/mp4/.test(f.type)?'mp4':'webm');document.body.appendChild(a);a.click();a.remove();ac.close();toast('Saved with FACT TOK watermark')};
+  rec.start();await ac.resume();await el.play();draw()}
+ catch(e){console.error(e);if(b||v.src){plain();toast('Saved without burned-in watermark (browser limit)')}}}
+
+/* ---------- LIVE ---------- */
+let camMode='post',liveTm=null,liveSec=0;
+window.setMode=m=>{camMode=m;$('mdPost').classList.toggle('on',m==='post');$('mdLive').classList.toggle('on',m==='live');$('recBtn').firstElementChild.innerText=m==='live'?'GO LIVE':''};
+window.startLive=()=>{if(!stream)return toast('Live needs the camera. Open the site from your https link and allow camera');
+ const t=prompt('Live title (optional)','')||'';liveSec=0;$('liveV').srcObject=stream;$('liveV').style.filter=FILTERS[camF].css;$('liveViews').innerText='0';$('liveT').innerText='0:00';$('liveChat').innerHTML=`<div class="m">You are live${t?': '+esc(t):''}. Be kind in chat.</div>`;openM('liveScreen');
+ clearInterval(liveTm);liveTm=setInterval(()=>{liveSec++;$('liveT').innerText=Math.floor(liveSec/60)+':'+String(liveSec%60).padStart(2,'0')},1000)};
+window.liveSend=()=>{const t=$('liveIn').value.trim();if(!t)return;$('liveChat').insertAdjacentHTML('beforeend',`<div><b style="color:var(--g)">@${esc(currentUser.username)}</b> ${esc(t)}</div>`);$('liveIn').value='';$('liveChat').scrollTop=1e6};
+window.endLive=()=>{clearInterval(liveTm);closeM('liveScreen');closeCam();setMode('post');toast('Live ended')};
+
+/* ---------- INIT ---------- */
+window.init=function(){
+ $('suCC').innerHTML=$('liCC').innerHTML=CONFIG.countryCodes.map(c=>`<option value="${c.split(' ')[0]}">${c}</option>`).join('');
+ $('appName').innerText=CONFIG.appName;
+ users=Array.isArray(users)?users.filter(u=>u&&typeof u==='object'&&typeof u.email==='string'):[];users.forEach(normU);
+ [['ali@facttok.demo','Dr Ali','science_ali',2400],['sara@facttok.demo','Sara Khan','sara_facts',830]].forEach(d=>{if(!getU(d[0]))users.push({id:d[3],name:d[1],username:d[2],email:d[0],phone:'',cc:'',pass:Math.random()+'',bio:'Daily facts',dp:'',followers:d[3],followingList:[],saved:[],reposts:[],inbox:[],coins:0,private:false,allowDownload:true,banned:false})});
+ videos=ld('facttok_videos',[]);videos=Array.isArray(videos)?videos.filter(v=>v&&typeof v==='object'&&v.id!=null):[];videos.forEach(normV);
+ if(!videos.length)videos=[{id:1,owner:'ali@facttok.demo',caption:'Honey never spoils. Edible honey was found in 3,000-year-old Egyptian tombs.',tags:'#facts #stem',loc:'Cairo',src:'',likes:1280,likedBy:[],comments:[],allowDownload:true,bg:'linear-gradient(160deg,#052e16,#000)'},{id:2,owner:'sara@facttok.demo',caption:'A day on Venus is longer than its year.',tags:'#facts #community',loc:'Lahore',src:'',likes:940,likedBy:[],comments:[],allowDownload:true,bg:'linear-gradient(160deg,#0a2540,#000)'}];
+ const s=ld('facttok_current_user',null);if(s){currentUser=users.find(u=>u.id===s.id)||null;if(currentUser&&currentUser.banned)currentUser=null}
+ saveAll();if(currentUser)enterApp()};
+window.addEventListener('DOMContentLoaded',window.init);
+</script>
+
+<!-- ===== FACT TOK UPDATE BLOCK (merged) ===== -->
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var st=document.createElement('style');
+  st.textContent='.ftsh{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}.ftsh>div{background:#121212;width:100%;max-width:480px;max-height:85vh;overflow:auto;border-radius:20px 20px 0 0;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 16px)}.ftrow{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid #2a2a2a}.ftrow .dpw{width:44px;height:44px;flex:0 0 44px}.ftrow .nm{flex:1;min-width:0;cursor:pointer}.ftrow button{padding:8px 12px;font-size:12px;width:auto;margin:0}.ftic{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;margin-right:12px;font-size:17px;vertical-align:middle}#search{display:none}#ftSearchBtn{background:none;font-size:20px;padding:6px 10px;margin-left:auto}.fth{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:800;font-size:16px}';
+  document.head.appendChild(st);
+  function sh(html){var o=document.querySelector('.ftsh');if(o)o.remove();var s=document.createElement('div');s.className='ftsh';s.innerHTML='<div>'+html+'</div>';s.onclick=function(e){if(e.target===s)s.remove()};document.body.appendChild(s);return s}
+  function rowU(u){var me=u.email===currentUser.email,f=currentUser.followingList.indexOf(u.email)>-1;
+    return '<div class="ftrow"><div class="dpw">'+dpHTML(u,44)+'</div><div class="nm" data-e="'+esc(u.email)+'"><b>'+esc(u.name)+'</b>'+tick(u)+'<div class="m">@'+esc(u.username)+'</div></div>'+(me?'':'<button class="pri" data-f="'+esc(u.email)+'">'+(f?'Following ✓':'Follow')+'</button>')+'</div>'}
+  function wire(s,again){s.addEventListener('click',function(e){
+    var n=e.target.closest('[data-e]'),f=e.target.closest('[data-f]');
+    if(n){s.remove();showUser(n.dataset.e)}
+    else if(f){followUser(f.dataset.f);again()}})}
+
+  /* 1) Followers / Following list */
+  function showList(kind,u){
+    var arr=kind==='following'?u.followingList.map(getU).filter(Boolean):users.filter(function(x){return x.followingList.indexOf(u.email)>-1});
+    var s=sh('<div class="fth"><span>'+(kind==='following'?'Following':'Followers')+' ('+arr.length+')</span><button onclick="this.closest(\'.ftsh\').remove()">✕</button></div>'+(arr.map(rowU).join('')||'<p class="m" style="padding:20px 0">Abhi koi nahi.</p>')+(kind==='followers'&&u.followers>arr.length?'<p class="m" style="padding:10px 0">Baqi followers ke account is phone par maujood nahi.</p>':''));
+    wire(s,function(){showList(kind,u)})}
+
+  /* 3) Doosre user ko inbox message */
+  function dmBox(u){
+    var s=sh('<div class="fth"><span>Message @'+esc(u.username)+'</span><button onclick="this.closest(\'.ftsh\').remove()">✕</button></div><textarea id="ftDm" rows="3" maxlength="300" placeholder="Message likhein..."></textarea><button class="pri" id="ftDmGo">Send</button>');
+    $('ftDmGo').onclick=function(){var t=$('ftDm').value.trim();if(!t)return toast('Message likhein');var T=getU(u.email);if(!T)return;T.inbox.push('✉️ @'+currentUser.username+': '+t);saveAll();s.remove();toast('Message bhej diya')}}
+
+  var _su=window.showUser;
+  window.showUser=function(email){
+    _su(email);var u=viewing,sb=document.querySelector('#profBody .stat');if(!u)return;
+    if(sb){var d=sb.children;d[0].style.cursor=d[1].style.cursor='pointer';d[0].onclick=function(){showList('following',u)};d[1].onclick=function(){showList('followers',u)}}
+    if(u.email!==currentUser.email){var fb=document.querySelector('#profBody>button.pri');if(fb){var m=document.createElement('button');m.textContent='✉️ Message';m.style.cssText='width:100%;margin-top:6px';m.onclick=function(){dmBox(u)};fb.after(m)}}};
+
+  /* 2) Comment delete (apna comment, video ka malik, ya admin) */
+  window.drawComments=function(){
+    var v=vid(selId),me=currentUser;$('cmTitle').innerText=v.comments.length+' comments';
+    $('cmList').innerHTML=v.comments.map(function(c,i){var can=c.u===me.username||v.owner===me.email||me.email===CONFIG.adminGmail;
+      return '<div class="cm" style="display:flex;gap:8px"><div style="flex:1"><b>@'+esc(c.u)+'</b> '+esc(c.t)+'</div>'+(can?'<button style="padding:2px 8px;background:none" onclick="ftDelCm('+i+')">🗑</button>':'')+'</div>'}).join('')||'<p class="m">Be the first to comment.</p>'};
+  window.ftDelCm=function(i){var v=vid(selId);if(!v||!confirm('Ye comment delete karein?'))return;v.comments.splice(i,1);saveAll();drawComments();renderFeed();toast('Comment delete ho gaya')};
+
+  /* 4) Search button -> alag search bar (full screen) */
+  var sbtn=document.createElement('button');sbtn.id='ftSearchBtn';sbtn.textContent='🔍';sbtn.onclick=openSearch;
+  document.querySelector('header').insertBefore(sbtn,document.querySelector('header .coin'));
+  function openSearch(){
+    var s=sh('<div style="display:flex;gap:8px;align-items:center"><input id="ftQ" placeholder="Search facts, users, #tags" style="margin:0"><button id="ftQx">✕</button></div><div id="ftRes"></div>');
+    s.style.alignItems='stretch';s.firstElementChild.style.cssText='max-width:480px;height:100%;max-height:100%;border-radius:0;padding:14px;background:#000';
+    var picked=false;
+    function res(){var q=$('ftQ').value.toLowerCase().trim();
+      if(!q){$('ftRes').innerHTML='<p class="m" style="padding:20px 0">Naam, @username ya #tag likhein.</p>';return}
+      var us=users.filter(function(u){return !u.banned&&(u.name+' '+u.username).toLowerCase().indexOf(q.replace('@',''))>-1});
+      var vs=videos.filter(function(v){return v.vis!=='me'&&(v.caption+' '+v.tags).toLowerCase().indexOf(q)>-1});
+      $('ftRes').innerHTML=(us.length?'<div class="fth" style="margin-top:12px">Users</div>'+us.map(rowU).join(''):'')+(vs.length?'<div class="fth" style="margin-top:12px">Videos</div>'+vs.map(function(v){return '<div class="ftrow"><div class="nm" data-v="1">'+esc(v.caption||'Video')+'<div class="tag">'+esc(v.tags)+'</div></div></div>'}).join(''):'')||'<p class="m" style="padding:20px 0">Kuch nahi mila.</p>'}
+    $('ftQ').oninput=res;res();
+    $('ftQx').onclick=function(){$('search').value='';renderFeed();s.remove()};
+    s.addEventListener('click',function(e){var v=e.target.closest('[data-v]');if(v){$('search').value=$('ftQ').value;renderFeed();s.remove();toast('Search result dikha diye')}});
+    wire(s,res);setTimeout(function(){$('ftQ').focus()},100)}
+
+  /* 5) Share menu: har option ke saath rangeen icon */
+  var L=document.querySelector('#shareModal .list');
+  if(L){var it=[['#fe2c55','🚩','Report','openReportModal()'],['#25f4ee','🔁','Repost','repostVideo()'],['#1ed760','⬇️','Download','downloadVideo()'],['#25d366','💬','WhatsApp',"shareTo('wa')"],['#1d9bf0','🐦','Twitter',"shareTo('tw')"],['#1877f2','📘','Facebook',"shareTo('fb')"],['#e1306c','📸','Instagram (copy link)',"shareTo('ig')"],['#555','🔗','Copy link',"shareTo('cp')"]];
+    L.innerHTML=it.map(function(a){return '<button onclick="'+a[3]+'"><span class="ftic" style="background:'+a[0]+'">'+a[1]+'</span>'+a[2]+'</button>'}).join('')}
+
+  /* 6) Video ko 2 second dabane par Save option */
+  var HOLD=2000,timer=null,sx=0,sy=0,swallow=false;
+  function videoAt(x,y){var l=document.elementsFromPoint(x,y);for(var i=0;i<l.length;i++){if(l[i].tagName==='VIDEO'&&l[i].dataset.i)return l[i]}return null}
+  function openHold(el){
+    var V=vid(el.dataset.i);if(!V)return;
+    var s=sh('<div class="fth"><span>Video options</span></div><button class="pri" id="ftH1">⬇️ Video download karein</button><button id="ftH2" style="width:100%;margin-top:10px;padding:14px">🔖 Profile mein save karein</button><button id="ftH3" style="width:100%;margin-top:10px;padding:14px">✖ Cancel</button>');
+    $('ftH3').onclick=function(){s.remove()};
+    $('ftH2').onclick=function(){s.remove();if(currentUser.saved.indexOf(V.id)<0)window.saveVideo(V.id);else toast('Pehle se saved hai')};
+    $('ftH1').onclick=function(){s.remove();var o=getU(V.owner);if(V.allowDownload===false||(o&&o.allowDownload===false))return toast('Is video ka download band hai');burnDL(V)}}
+  function cancel(){clearTimeout(timer);timer=null}
+  document.addEventListener('pointerdown',function(e){
+    if(e.target.closest&&e.target.closest('button,a,input,textarea,select,.ftsh,.modal,.scr'))return;
+    var v=videoAt(e.clientX,e.clientY);if(!v)return;sx=e.clientX;sy=e.clientY;cancel();
+    timer=setTimeout(function(){timer=null;swallow=true;if(navigator.vibrate)navigator.vibrate(40);openHold(v)},HOLD)},true);
+  document.addEventListener('pointermove',function(e){if(timer&&Math.hypot(e.clientX-sx,e.clientY-sy)>12)cancel()},true);
+  ['pointerup','pointercancel','scroll','touchmove'].forEach(function(n){document.addEventListener(n,cancel,true)});
+  document.addEventListener('click',function(e){if(swallow){swallow=false;e.stopPropagation();e.preventDefault()}},true);
+  document.addEventListener('contextmenu',function(e){if(videoAt(e.clientX,e.clientY))e.preventDefault()},true);
+})();
+</script>
+</body></html>
+
