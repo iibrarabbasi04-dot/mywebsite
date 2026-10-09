@@ -1,5 +1,6 @@
-/* ===== FT SOCIAL add-on (alag file): Following/Followers list, Total likes, Send-to share + real icons, Inbox, Profile, Chat, ⚡ menu =====
-   Isay index.html ke saath ek hi folder me upload karo. index.html isay khud load karti hai. */
+/* ===== FT SOCIAL add-on (alag file): Following/Followers list, Total likes, Send-to share + real icons, Inbox, Profile, Chat =====
+   Isay index.html ke saath ek hi folder me upload karo. index.html isay khud load karti hai.
+   v5: ⚡ button/menu hata diya, Share sheet ab apni hai (logos + users ke avatar dono nazar aate hain). */
 (function(){
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return '&#'+c.charCodeAt(0)+';'})}
   function J(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
@@ -28,7 +29,8 @@
   function cp(){var l=location.href;if(navigator.clipboard)navigator.clipboard.writeText(l).then(function(){tz('Link copy ho gaya')},function(){prompt('Link:',l)});else prompt('Link:',l)}
 
   var st=document.createElement('style');
-  st.textContent='#ftX{position:fixed;inset:0;z-index:99990;background:#fff;color:#111;font-family:sans-serif;display:flex;flex-direction:column}#ftX .h{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-weight:700;font-size:18px}#ftX .t{display:flex;border-bottom:1px solid #ddd}#ftX .t div{flex:1;text-align:center;padding:12px 4px;color:#888;font-weight:600;font-size:14px}#ftX .t .on{color:#111;border-bottom:2px solid #111}#ftX input{margin:10px 16px;padding:12px 14px;border:0;border-radius:10px;background:#f1f1f2;font-size:15px}#ftX .l{flex:1;overflow:auto}#ftX .r{display:flex;align-items:center;gap:12px;padding:9px 16px}#ftX .n{flex:1;min-width:0}#ftX .n b,#ftX .n small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ftX .n small{color:#777}#ftX .b{border:0;border-radius:8px;padding:9px 16px;font-weight:700;background:#efefef;color:#111}#ftX .b.p{background:#fe2c55;color:#fff}';
+  st.textContent='#ftX{position:fixed;inset:0;z-index:99990;background:#fff;color:#111;font-family:sans-serif;display:flex;flex-direction:column}#ftX .h{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-weight:700;font-size:18px}#ftX .t{display:flex;border-bottom:1px solid #ddd}#ftX .t div{flex:1;text-align:center;padding:12px 4px;color:#888;font-weight:600;font-size:14px}#ftX .t .on{color:#111;border-bottom:2px solid #111}#ftX input{margin:10px 16px;padding:12px 14px;border:0;border-radius:10px;background:#f1f1f2;font-size:15px}#ftX .l{flex:1;overflow:auto}#ftX .r{display:flex;align-items:center;gap:12px;padding:9px 16px}#ftX .n{flex:1;min-width:0}#ftX .n b,#ftX .n small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ftX .n small{color:#777}#ftX .b{border:0;border-radius:8px;padding:9px 16px;font-weight:700;background:#efefef;color:#111}#ftX .b.p{background:#fe2c55;color:#fff}'+
+  '#ftSh{position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,.5);display:flex;flex-direction:column;justify-content:flex-end;font-family:sans-serif}#ftSh .s{background:#fff;color:#111;border-radius:18px 18px 0 0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));max-height:85vh;overflow:auto}#ftSh .hd{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;font-size:18px;font-weight:700}#ftSh .rw{display:flex;gap:14px;overflow-x:auto;padding:12px 14px;-webkit-overflow-scrolling:touch}#ftSh .rw>div{text-align:center;min-width:68px;max-width:72px;font-size:12px;color:#222}#ftSh .rw>div>div.nm{margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ftSh .ic{display:flex;width:56px;height:56px;border-radius:50%;align-items:center;justify-content:center;margin:0 auto 4px;font-size:25px;color:#fff;font-weight:700}';
   document.head.appendChild(st);
 
   function toggle(m,k){
@@ -49,8 +51,8 @@
       if(sort)a.sort(function(x,y){var r=String(x.name||x.username).localeCompare(String(y.name||y.username));return sort===1?r:-r});
       if(!a.length)h+='<p style="text-align:center;color:#888;padding:40px">Abhi koi nahi</p>';
       a.forEach(function(u){
-        var f=fo.indexOf(kid(u))>-1,fr=f&&fl.indexOf(kid(u))>-1;
-        h+='<div class="r">'+av(u,52)+'<div class="n"><b>'+esc(u.name||u.username||'User')+'</b><small>'+(u.username?'@'+esc(u.username):'')+'</small></div><button class="b'+(f?'':' p')+'" data-k="'+esc(kid(u))+'">'+(mg&&f?'Unfollow':fr?'Friends':f?'Following':tab==='followers'?'Follow back':'Follow')+'</button><span data-more style="font-size:20px;padding:0 6px;color:#555">•••</span></div>';
+        var f=fo.indexOf(kid(u))>-1,fr=f&&fl.indexOf(kid(u))>-1,np=(u.videos||u.posts||[]).length;
+        h+='<div class="r">'+av(u,52)+'<div class="n"><b>'+esc(u.name||u.username||'User')+'</b>'+(tab==='following'&&np?'<small><span style="background:#f1f1f2;border-radius:6px;padding:2px 8px">'+np+' new post'+(np>1?'s':'')+'</span></small>':'<small>'+(u.username?esc(u.username):'')+'</small>')+'</div><button class="b'+(f?'':' p')+'" data-k="'+esc(kid(u))+'">'+(mg&&f?'Unfollow':fr?'Friends':f?'Following':tab==='followers'?'Follow back':'Follow')+'</button><span data-more style="font-size:20px;padding:0 6px;color:#555">•••</span></div>';
       });
       el.innerHTML=h+'</div>';
       el.querySelector('#ftXb').onclick=function(){el.remove()};
@@ -74,7 +76,7 @@
   /* profile par 204 Following / 1,052 Followers / 14.8K Likes dabane par */
   document.addEventListener('click',function(e){
     try{
-      var n=e.target,i=0;if(!n.closest||n.closest('#ftX,#ftPf,#ftIn,#ftCh'))return;
+      var n=e.target,i=0;if(!n.closest||n.closest('#ftX,#ftPf,#ftIn,#ftCh,#ftSh'))return;
       while(n&&n!==document.body&&i<3){
         var s=(n.textContent||'').trim(),r=/^(?:([\d.,]+\s?[KMkm]?)\s*(Following|Followers|Likes)|(Following|Followers|Likes)\s*([\d.,]+\s?[KMkm]?))$/i.exec(s);
         if(r&&s.length<24){e.stopPropagation();e.preventDefault();var w=(r[2]||r[3]).toLowerCase();if(w==='likes')likes(r[1]||r[4]);else openList(w);return}
@@ -83,45 +85,7 @@
     }catch(x){}
   },true);
 
-  /* share menu me "Send to" (users ki row) + extra options (Copy link, Telegram, SMS, Email, More) */
-  function share(){
-    var all=document.querySelectorAll('div,span,p,button,li,a,b'),w=null,sh=null;
-    for(var i=0;i<all.length&&!sh;i++){
-      var e=all[i];
-      if(e.children.length||e.getAttribute('data-ftx')||(e.textContent||'').trim().toLowerCase()!=='whatsapp')continue;
-      e.setAttribute('data-ftx','1');
-      var p=e;for(var j=0;j<7&&p.parentElement&&p.parentElement!==document.body;j++){p=p.parentElement;if(/report/i.test(p.textContent||''))break}
-      if(/report/i.test(p.textContent||'')&&!p.querySelector('[data-ftsend]')&&!p.closest('#ftX'))sh=p;
-    }
-    if(!sh)return;
-    var us=users().slice(0,12),h=document.createElement('div'),L=encodeURIComponent(location.href);
-    h.setAttribute('data-ftsend','1');h.style.cssText='padding:10px 14px;border-bottom:1px solid #8884';
-    h.innerHTML='<div style="text-align:center;font-weight:700;font-size:18px;padding:4px">Send to</div><div style="display:flex;gap:14px;overflow-x:auto;padding:10px 0">'+us.map(function(u,k){return '<div data-u="'+k+'" style="text-align:center;min-width:64px;font-size:12px">'+av(u,52)+'<div style="margin-top:4px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(u.name||u.username||'User')+'</div></div>'}).join('')+'</div>';
-    [].forEach.call(h.querySelectorAll('[data-u]'),function(d){d.onclick=function(){var u=us[+d.getAttribute('data-u')];if(typeof window.ftSendDM==='function')window.ftSendDM(u,location.href);else{cp();tz('Link copy kar ke '+(u.name||'user')+' ko bhej do')}}});
-    sh.insertBefore(h,sh.firstChild);
-    var ex=[[bi('','8885','🔗'),'Copy link',cp],[bi('telegram','26A5E4','✈️'),'Telegram',function(){window.open('https://t.me/share/url?url='+L)}],[bi('googlemessages','1A73E8','💬'),'SMS',function(){location.href='sms:?body='+L}],[bi('gmail','EA4335','✉️'),'Email',function(){location.href='mailto:?body='+L}],[bi('','1E90FF','⋯'),'More',function(){if(navigator.share)navigator.share({url:location.href}).catch(function(){});else cp()}]];
-    var row=document.createElement('div');row.style.cssText='display:flex;gap:14px;overflow-x:auto;padding:12px 14px';
-    ex.forEach(function(o){var b=document.createElement('div');b.style.cssText='text-align:center;min-width:64px;font-size:12px';b.innerHTML=o[0]+o[1];b.onclick=o[2];row.appendChild(b)});
-    sh.appendChild(row);sh.appendChild(mkRow(ACT));
-  }
-
-  /* ===== Real brand icons (share list), Inbox, Profile, Chat ===== */
-  function bi(s,c,f,d){return '<span style="display:flex;width:52px;height:52px;border-radius:50%;background:#'+c+';align-items:center;justify-content:center;margin:0 auto 4px;font-size:24px">'+(s?'<img src="https://cdn.jsdelivr.net/npm/simple-icons@11.14.0/icons/'+s+'.svg" width="28" height="28" style="'+(d?'':'filter:invert(1)')+'" onload="this.nextSibling.remove()" onerror="this.remove()">':'')+'<span>'+f+'</span></span>'}
-  var BR={'whatsapp':['whatsapp','25D366','🟢'],'facebook':['facebook','1877F2','📘'],'instagram':['instagram','E4405F','📸'],'twitter':['x','000000','🐦'],'x':['x','000000','✖️'],'telegram':['telegram','26A5E4','✈️'],'snapchat':['snapchat','FFFC00','👻',1],'messenger':['messenger','0084FF','💬'],'email':['gmail','EA4335','✉️'],'sms':['googlemessages','1A73E8','💬']};
-  function brands(){
-    [].forEach.call(document.querySelectorAll('[data-ftsend]'),function(h){
-      var sh=h.parentElement;if(!sh)return;
-      [].forEach.call(sh.querySelectorAll('div,span,p,button,li,a,b'),function(e){
-        if(e.children.length||e.getAttribute('data-ftb')||h.contains(e))return;
-        var b=BR[(e.textContent||'').trim().toLowerCase()];if(!b)return;
-        e.setAttribute('data-ftb','1');
-        var p=e.parentElement;if(!p||p.querySelector('img,svg'))return;
-        var t=document.createElement('span');t.innerHTML=bi(b[0],b[1],b[2],b[3]);
-        p.insertBefore(t.firstChild,e);
-        if(getComputedStyle(p).display.indexOf('flex')>-1){p.style.flexDirection='column';p.style.alignItems='center'}
-      });
-    });
-  }
+  /* ===== DMs / Chat / Profile / Inbox ===== */
   function dms(){return J('ft_dm')||{}}
   function isFr(m,u){return lst(m,'following').map(kid).indexOf(kid(u))>-1&&lst(m,'followers').map(kid).indexOf(kid(u))>-1}
   function sendDM(u,t){
@@ -205,61 +169,87 @@
     }catch(er){}
   },true);
 
-  /* ===== Build marker + hamesha nazar aane wala ⚡ menu (app ke DOM par depend nahi) ===== */
-  var BUILD='FT add-ons v4 (09-Oct)';
-  function note(t){
-    var d=document.createElement('div');
-    d.textContent=t;
-    d.style.cssText='position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:100001;background:#1ed760;color:#000;font:700 13px sans-serif;padding:8px 14px;border-radius:20px';
-    document.body.appendChild(d);setTimeout(function(){d.remove()},4000);
+  /* ===== SHARE SHEET (apni sheet: Send to users + brand logos + actions) =====
+     App ki purani share sheet chhup jati hai, uske Report/Repost/Download/WhatsApp... buttons yahan se wohi click hote hain. */
+  function ic(bg,sym,fs){return '<span class="ic" style="background:'+bg+(fs?';font-size:'+fs+'px':'')+'">'+sym+'</span>'}
+  var SVG_SEARCH='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+  var SVG_X='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>';
+  var shClosed=null,shOpen=false;
+  function origClick(sh,name){
+    var all=sh.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){var e=all[i];if(!e.children.length&&(e.textContent||'').trim().toLowerCase()===name){e.click();return true}}
+    return false;
   }
-  function fab(){
-    if(!document.body||document.getElementById('ftFab'))return;
-    var f=document.createElement('div');f.id='ftFab';f.textContent='⚡';
-    f.style.cssText='position:fixed;left:6px;top:46%;z-index:99970;width:38px;height:38px;border-radius:50%;background:#1ed760;color:#000;display:flex;align-items:center;justify-content:center;font-size:18px;opacity:.85;box-shadow:0 2px 8px #0008';
-    f.onclick=menu;document.body.appendChild(f);
-  }
-  function menu(){
-    var o=page('ftMn',99996,0);
-    o.style.background='rgba(0,0,0,.6)';o.style.justifyContent='flex-end';
-    o.innerHTML='<div style="background:#fff;border-radius:18px 18px 0 0;padding:14px 16px 24px"><b style="font-size:18px">FACT TOK menu</b><div style="color:#888;font-size:12px;margin-bottom:8px">'+BUILD+'</div>'+
-    [['inbox','📥 Inbox'],['followers','👥 Followers'],['following','➡️ Following'],['likes','❤️ Total likes'],['me','👤 Meri profile'],['diag','🔧 Diagnose'],['x','✖ Band karo']].map(function(a){return '<div data-a="'+a[0]+'" style="padding:14px 4px;border-top:1px solid #eee;font-size:16px">'+a[1]+'</div>'}).join('')+'</div>';
-    o.onclick=function(e){if(e.target===o)o.remove()};
-    on(o,'[data-a]',function(x){
-      var a=x.getAttribute('data-a'),mm=me();o.remove();
-      if(a==='inbox'){
-        inbox(0);var ib=document.getElementById('ftIn'),c=document.createElement('div');
-        c.textContent='✖ Band karo';c.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px';
-        c.onclick=function(){ib.remove()};ib.appendChild(c);
+  function visible(e){var r=e.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(e).visibility!=='hidden'}
+  function openShare(sh){
+    shOpen=true;
+    var L=encodeURIComponent(location.href),T=encodeURIComponent('FACT TOK'),prevDisp=sh.style.display;
+    sh.style.display='none';
+    var ov=document.createElement('div');ov.id='ftSh';
+    function close(clickApp){
+      ov.remove();shOpen=false;shClosed=sh;
+      sh.style.display=prevDisp;
+      if(clickApp){
+        var cl=null,all=sh.querySelectorAll('button,div,span,svg,a');
+        for(var i=0;i<all.length;i++){var t=(all[i].textContent||'').trim();if(/^[×✕✖xX]$/.test(t)){cl=all[i];break}}
+        if(cl)cl.click();else if(sh.parentElement&&sh.parentElement!==document.body)sh.parentElement.click();else sh.style.display='none';
       }
-      else if(a==='followers'||a==='following')openList(a);
-      else if(a==='likes')likes(mm.likes||0);
-      else if(a==='me')openProfile(mm);
-      else if(a==='diag')alert(BUILD+'\nUsers: '+users().length+'\nMe: '+(kid(mm)||'nahi mila')+'\nStorage keys: '+Object.keys(localStorage).join(', '));
-    });
+    }
+    function viaApp(name,fb){return function(){close(false);if(!origClick(sh,name)&&fb)fb()}}
+    var us=users().filter(function(u){return kid(u)!==kid(me())}).slice(0,15);
+    var row1=us.length?us.map(function(u,k){return '<div data-u="'+k+'">'+av(u,56).replace('<div style="','<div style="margin:0 auto;')+'<div class="nm">'+nm(u)+'</div></div>'}).join(''):'<div style="min-width:0;max-width:none;color:#888;font-size:13px;padding:14px 4px">Abhi koi user nahi</div>';
+    var B=[
+      ['Repost',ic('#ffc107','🔁'),viaApp('repost')],
+      ['Copy link',ic('#3b7bff','🔗'),function(){cp()}],
+      ['WhatsApp',ic('#25D366','📞'),viaApp('whatsapp',function(){window.open('https://wa.me/?text='+L)})],
+      ['Facebook',ic('#1877F2','<span style="font-family:Georgia,serif;font-size:34px;margin-top:6px">f</span>'),viaApp('facebook',function(){window.open('https://www.facebook.com/sharer/sharer.php?u='+L)})],
+      ['Instagram',ic('linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)','📷'),viaApp('instagram',function(){cp()})],
+      ['Twitter',ic('#000','<span style="font-size:28px">𝕏</span>'),viaApp('twitter',function(){window.open('https://twitter.com/intent/tweet?url='+L+'&text='+T)})],
+      ['Telegram',ic('#26A5E4','✈️'),function(){window.open('https://t.me/share/url?url='+L)}],
+      ['SMS',ic('#1A73E8','💬'),function(){location.href='sms:?body='+L}],
+      ['Snapchat',ic('#FFFC00','👻'),function(){window.open('https://www.snapchat.com/scan?attachmentUrl='+L)}],
+      ['Email',ic('#12b5f0','✉️'),function(){location.href='mailto:?body='+L}],
+      ['More',ic('#2f8cff','⋯',30),function(){if(navigator.share)navigator.share({url:location.href}).catch(function(){});else cp()}]
+    ];
+    var A=[
+      ['Report',ic('#e9e9ea','🚩'),viaApp('report')],
+      ['Not interested',ic('#e9e9ea','💔'),function(){close(true);tz('Theek hai, aisi videos kam dikhengi')}],
+      ['Download',ic('#e9e9ea','⬇️'),viaApp('download')],
+      ['Add to Story',ic('#e9e9ea','➕'),function(){var a=J('ft_story')||[];a.push({u:kid(me()),l:location.href,ts:Date.now()});try{localStorage.setItem('ft_story',JSON.stringify(a))}catch(e){}close(true);tz('Story me add ho gaya')}],
+      ['Duet',ic('#e9e9ea','👥'),function(){close(true);if(typeof window.openCamera==='function')window.openCamera();else tz('Ye feature jald aayega')}],
+      ['Stitch',ic('#e9e9ea','▯'),function(){close(true);if(typeof window.openCamera==='function')window.openCamera();else tz('Ye feature jald aayega')}],
+      ['Create group',ic('#e9e9ea','👪'),function(){var n=prompt('Group ka naam:');if(!n)return;var d=dms();d['group:'+n]=[{me:1,t:'Group "'+n+'" ban gaya',ts:Date.now()}];try{localStorage.setItem('ft_dm',JSON.stringify(d))}catch(e){}close(true);tz('Group ban gaya - Inbox me dekho')}],
+      ['Set as wallpaper',ic('#e9e9ea','▶️'),function(){tz('Ye feature jald aayega')}],
+      ['Create sticker',ic('#e9e9ea','🏷️'),function(){tz('Ye feature jald aayega')}],
+      ['Share as GIF',ic('#e9e9ea','<span style="font-size:15px;color:#333">GIF</span>'),function(){tz('Ye feature jald aayega')}]
+    ];
+    function rowHtml(a,p){return '<div class="rw">'+a.map(function(o,i){return '<div data-'+p+'="'+i+'">'+o[1]+'<div class="nm" style="white-space:normal">'+o[0]+'</div></div>'}).join('')+'</div>'}
+    ov.innerHTML='<div class="s"><div class="hd"><span data-sr>'+SVG_SEARCH+'</span><span>Send to</span><span data-x>'+SVG_X+'</span></div><div class="rw">'+row1+'</div><div style="border-top:1px solid #eee"></div>'+rowHtml(B,'b')+rowHtml(A,'a')+'</div>';
+    document.body.appendChild(ov);
+    ov.onclick=function(e){if(e.target===ov)close(true)};
+    ov.querySelector('[data-x]').onclick=function(){close(true)};
+    ov.querySelector('[data-sr]').onclick=function(){var q=prompt('User ka naam search karo:');if(!q)return;q=q.toLowerCase();var f=users().filter(function(u){return (String(u.name||'')+' '+String(u.username||'')).toLowerCase().indexOf(q)>-1})[0];if(f){close(true);window.ftSendDM(f,location.href)}else tz('Koi user nahi mila')};
+    on(ov,'[data-u]',function(x){var u=us[+x.getAttribute('data-u')];close(true);window.ftSendDM(u,location.href)});
+    on(ov,'[data-b]',function(x){B[+x.getAttribute('data-b')][2]()});
+    on(ov,'[data-a]',function(x){A[+x.getAttribute('data-a')][2]()});
   }
-  fab();note(BUILD+' ✓');
-
-  /* ===== Share sheet ki 2nd row (screenshot jaisi) ===== */
-  function soon(){tz('Ye feature jald aayega')}
-  function cam(){if(typeof window.openCamera==='function')window.openCamera();else soon()}
-  function mkGroup(){
-    var n=prompt('Group ka naam:');if(!n)return;
-    var d=dms();d['group:'+n]=[{me:1,t:'Group "'+n+'" ban gaya',ts:Date.now()}];
-    try{localStorage.setItem('ft_dm',JSON.stringify(d))}catch(e){}
-    tz('Group ban gaya - Inbox me dekho');
-  }
-  function toStory(){
-    var a=J('ft_story')||[];a.push({u:kid(me()),l:location.href,ts:Date.now()});
-    try{localStorage.setItem('ft_story',JSON.stringify(a))}catch(e){}
-    tz('Story me add ho gaya');
-  }
-  var ACT=[['➕','Add to Story',toStory],['👥','Duet',cam],['▯','Stitch',cam],['👪','Create group',mkGroup],['▶️','Set as wallpaper',soon],['🏷️','Create sticker',soon],['GIF','Share as GIF',soon],['💔','Not interested',function(){tz('Theek hai, aisi videos kam dikhengi')}]];
-  function mkRow(a){
-    var r=document.createElement('div');r.style.cssText='display:flex;gap:14px;overflow-x:auto;padding:12px 14px';
-    a.forEach(function(o){var b=document.createElement('div');b.style.cssText='text-align:center;min-width:64px;font-size:12px';b.innerHTML=bi('','8883',o[0])+o[1];b.onclick=o[2];r.appendChild(b)});
-    return r;
+  /* app ki share sheet dhoondo: usme "WhatsApp" aur "Report" dono likha ho */
+  function tryShare(){
+    if(shOpen||document.getElementById('ftSh'))return;
+    if(shClosed){if(!visible(shClosed))shClosed=null;else return}
+    var all=document.querySelectorAll('div,span,p,button,li,a,b'),w=null;
+    for(var i=0;i<all.length;i++){
+      var e=all[i];
+      if(e.children.length||(e.textContent||'').trim().toLowerCase()!=='whatsapp'||!visible(e))continue;
+      var p=e,j=0,sh=null;
+      while(p.parentElement&&p.parentElement!==document.body&&j<8){
+        p=p.parentElement;j++;
+        var t=(p.textContent||'').toLowerCase();
+        if(t.indexOf('report')>-1&&t.indexOf('share to')>-1){sh=p;break}
+      }
+      if(sh&&!sh.closest('#ftX,#ftPf,#ftIn,#ftCh,#ftSh')){openShare(sh);return}
+    }
   }
   var pend=0;
-  try{new MutationObserver(function(){if(pend)return;pend=1;setTimeout(function(){pend=0;try{share();brands();fab()}catch(e){}},200)}).observe(document.body,{childList:true,subtree:true})}catch(e){}
+  try{new MutationObserver(function(){if(pend)return;pend=1;setTimeout(function(){pend=0;try{tryShare()}catch(e){}},150)}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']})}catch(e){}
 })();
