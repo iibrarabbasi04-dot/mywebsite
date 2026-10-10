@@ -1,10 +1,12 @@
 // FACT TOK service worker (app install + basic offline)
-// Jab app.html ya ft.social.js badlein to VERSION barha dein (v2, v3...) taake naya code load ho.
-const VERSION = 'v1';
+// Jab index.html / app.html / ft-*.js badlein to VERSION barha dein (v2, v3...) taake naya code load ho.
+const VERSION = 'v2';
 const CACHE = 'facttok-' + VERSION;
 const SHELL = [
+  './',
+  './index.html',
   './app.html',
-  './ft.social.js',
+  './ft-social.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -47,7 +49,7 @@ self.addEventListener('fetch', function (e) {
       }
       return res;
     }).catch(function () {
-      return caches.match(req).then(function (r) { return r || caches.match('./app.html'); });
+      return caches.match(req).then(function (r) { return r || caches.match('./index.html'); });
     })
   );
 });
