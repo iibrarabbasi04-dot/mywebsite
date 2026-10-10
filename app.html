@@ -63,7 +63,15 @@ nav .plus{background:linear-gradient(90deg,#25f4ee 30%,#fe2c55 70%);color:#000;f
 .tools{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:6px;background:#000}.tools button{flex:0 0 auto;background:#1c1c1c;font-size:12px;padding:8px 12px}
 .tools .on,.panel .on{background:var(--g);color:#000}
 .panel{padding:6px 12px;min-height:100px;background:#000}.panel label{display:flex;align-items:center;gap:8px;font-size:12px}.panel label input{padding:0;margin:4px 0}.panel button{margin:2px;font-size:12px;padding:8px 12px}
-.gal{position:relative;width:50px;height:50px;border-radius:12px;background:var(--l);display:grid;place-items:center;font-size:20px}.gal input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;margin:0;padding:0;border:0;cursor:pointer}.ghost{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}.modes{display:flex;justify-content:center;gap:26px;background:#000;padding-bottom:14px}.modes button{background:none;color:var(--m);font-weight:800;padding:4px;border-radius:0}.modes .on{color:#fff;border-bottom:2px solid var(--g)}.rec b{display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800}#liveChat div{margin:3px 0}</style></head><body>
+.gal{position:relative;width:50px;height:50px;border-radius:12px;background:var(--l);display:grid;place-items:center;font-size:20px}.gal input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;margin:0;padding:0;border:0;cursor:pointer}.ghost{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}.modes{display:flex;justify-content:center;gap:26px;background:#000;padding-bottom:14px}.modes button{background:none;color:var(--m);font-weight:800;padding:4px;border-radius:0}.modes .on{color:#fff;border-bottom:2px solid var(--g)}.rec b{display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800}#liveChat div{margin:3px 0}</style><link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FACT TOK">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head><body>
 
 <div id="authBox"><div class="glass"><div class="ft">FT</div>
 <div class="tabs"><button id="tLi" class="on" onclick="showMain('li')">LOGIN</button><button id="tSu" onclick="showMain('su')">SIGN UP</button></div>
@@ -485,4 +493,5 @@ window.addEventListener('DOMContentLoaded',window.init);
 })();
 </script>
 <script src="ft.social.js"></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </body></html>
