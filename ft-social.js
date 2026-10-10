@@ -4,7 +4,7 @@
 (function(){
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return '&#'+c.charCodeAt(0)+';'})}
   function J(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
-  function users(){var u=J('facttok_users');if(!u)return [];return Array.isArray(u)?u:Object.keys(u).map(function(k){var x=u[k];if(x&&typeof x==='object'&&!x.email&&!x.id)x.id=k;return x})}
+  function users(){if(window.ftCloud&&window.ftCloud.on())return window.ftCloud.users();var u=J('facttok_users');if(!u)return [];return Array.isArray(u)?u:Object.keys(u).map(function(k){var x=u[k];if(x&&typeof x==='object'&&!x.email&&!x.id)x.id=k;return x})}
   function kid(u){return u&&(u.email||u.id||u.username||u.name)}
   function ky(z){return z&&z.email||z}
   function me(){
@@ -36,6 +36,7 @@
   function toggle(m,k){
     var a=Array.isArray(m.following)?m.following:(m.following=[]),i=a.map(ky).indexOf(k);
     if(i>-1)a.splice(i,1);else a.push(k);
+    if(window.ftCloud&&window.ftCloud.on()){try{window.saveAll()}catch(e){}return}
     try{var raw=J('facttok_users');if(Array.isArray(raw)){raw.forEach(function(u){if(kid(u)===kid(m))u.following=a});localStorage.setItem('facttok_users',JSON.stringify(raw))}}catch(e){}
   }
   function openList(tab){
@@ -89,6 +90,7 @@
   function dms(){return J('ft_dm')||{}}
   function isFr(m,u){return lst(m,'following').map(kid).indexOf(kid(u))>-1&&lst(m,'followers').map(kid).indexOf(kid(u))>-1}
   function sendDM(u,t){
+    if(window.ftCloud&&window.ftCloud.on()){window.ftCloud.send(kid(u),t);return true}
     var m=me(),d=dms(),k=kid(u),a=d[k]||(d[k]=[]),rep=a.some(function(x){return !x.me});
     if(!isFr(m,u)&&!rep&&a.length>=1){tz('Jab tak wo reply na kare, sirf 1 message bhej sakte ho');return false}
     a.push({me:1,t:t,ts:Date.now()});
@@ -105,6 +107,7 @@
   function on(o,s,f){[].forEach.call(o.querySelectorAll(s),function(x){x.onclick=function(e){f(x,e)}})}
   function nm(u){return esc(u.name||u.username||'User')}
   function openChat(u){
+    if(window.ftCloud&&window.ftCloud.on()){window.ftCloud.chat(kid(u));return}
     var m=me(),k=kid(u),o=page('ftCh',99994,0);
     function draw(){
       var a=dms()[k]||[],fr=isFr(m,u),rep=a.some(function(x){return !x.me}),lock=!fr&&!rep&&a.length>=1;
@@ -141,6 +144,7 @@
   }
   var navEl=null;
   function inbox(bot){
+    if(window.ftCloud&&window.ftCloud.on()){window.openInbox();return}
     var m=me(),all=users().filter(function(u){return kid(u)!==kid(m)}),fl=lst(m,'followers'),d=dms(),ks=Object.keys(d),o=page('ftIn',99980,bot);
     var h='<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;font-size:24px"><span data-fl>👥</span><b style="font-size:20px">Inbox <span style="color:#1ed760;font-size:13px">●</span></b><span>🔍</span></div><div style="display:flex;gap:14px;overflow-x:auto;padding:34px 14px 16px"><div style="text-align:center;min-width:76px;font-size:13px;position:relative"><div style="position:absolute;top:-24px;left:0;background:#fff;border-radius:12px;padding:4px 8px;color:#888;font-size:12px;box-shadow:0 1px 4px #0003">What\'s up?</div>'+av(m,64)+'<div style="margin-top:4px">Create</div></div>'+all.slice(0,10).map(function(u,i){return '<div data-p="'+i+'" style="text-align:center;min-width:76px;font-size:13px"><div style="padding:3px;border-radius:50%;background:linear-gradient(45deg,#20d5ec,#1ed760);display:inline-block">'+av(u,60)+'</div><div style="margin-top:4px;max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nm(u)+'</div></div>'}).join('')+'</div>';
     if(fl.length)h+='<div data-fl style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#f1f1f2">'+av(fl[0],56)+'<div style="flex:1;font-size:16px"><b>'+nm(fl[0])+'</b>'+(fl.length>1?' and '+(fl.length-1)+' others':'')+' started following you</div><span style="background:#fe2c55;color:#fff;border-radius:12px;padding:3px 8px;font-size:13px">'+fl.length+'</span></div>';
